@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "build:msi": "tauri build",
-    "release": "bun scripts/release.ts --no-changelog"
+    "release": "bun scripts/release.ts --no-changelog",
+    "release:push": "bun scripts/release.ts --no-changelog && git push origin main --tags"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
