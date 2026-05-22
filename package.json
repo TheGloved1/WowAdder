@@ -1,7 +1,7 @@
 {
   "name": "wowadder",
   "private": true,
-  "version": "0.1.4",
+  "version": "0.1.5",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -16,8 +16,10 @@
     "@tauri-apps/plugin-fs": "^2.5.1",
     "@tauri-apps/plugin-opener": "^2",
     "@tauri-apps/plugin-store": "^2.4.3",
+    "curseforge-v2": "^1.5.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.15.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.0",
