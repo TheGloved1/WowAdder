@@ -8,7 +8,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "build:msi": "tauri build"
+    "build:msi": "tauri build",
+    "release": "bun scripts/release.ts --no-changelog"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
