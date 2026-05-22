@@ -10,7 +10,9 @@
     "tauri": "tauri",
     "build:msi": "tauri build",
     "release": "bun scripts/release.ts --no-changelog",
-    "release:push": "bun scripts/release.ts --no-changelog && git push origin main --tags"
+    "patch:push": "bun run release patch && git push origin main --tags",
+    "minor:push": "bun run release minor && git push origin main --tags",
+    "major:push": "bun run release major && git push origin main --tags"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
