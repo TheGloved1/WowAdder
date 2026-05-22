@@ -1,0 +1,1 @@
+export type { CF2Addon, CF2Category, CF2File, CF2Pagination, CF2SearchModsParams, CF2GameVersionsByType, CF2GameVersionType } from "curseforge-v2";
