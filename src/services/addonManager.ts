@@ -8,8 +8,19 @@ import {
   mkdir,
 } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
+import { load } from "@tauri-apps/plugin-store";
 import type { CF2Addon } from "../types/curseforge";
 import { getMod, searchMods, getModFileDownloadUrl } from "./curseforge";
+
+const STORE_FILE = "wowadder-config.json";
+
+let storePromise: ReturnType<typeof load> | null = null;
+function getStore() {
+  if (!storePromise) {
+    storePromise = load(STORE_FILE, { defaults: {}, autoSave: true });
+  }
+  return storePromise;
+}
 
 export interface InstalledAddon {
   modId: number;
@@ -44,12 +55,24 @@ function dbPath(addonsFolder: string): string {
 }
 
 export async function getAddonsFolder(): Promise<string | null> {
-  const stored = localStorage.getItem("wowadder_addons_folder");
-  return stored || null;
+  if (cachedFolder) return cachedFolder;
+  const store = await getStore();
+  let stored = await store.get<string>("addonsFolder");
+  if (!stored) {
+    const legacy = localStorage.getItem("wowadder_addons_folder");
+    if (legacy) {
+      await store.set("addonsFolder", legacy);
+      localStorage.removeItem("wowadder_addons_folder");
+      stored = legacy;
+    }
+  }
+  if (stored) cachedFolder = stored;
+  return stored ?? null;
 }
 
 export async function setAddonsFolder(path: string): Promise<void> {
-  localStorage.setItem("wowadder_addons_folder", path);
+  const store = await getStore();
+  await store.set("addonsFolder", path);
   cachedFolder = path;
   cachedDb = null;
   cachedInstallMap = null;
@@ -141,7 +164,10 @@ export async function installAddon(
 
   const existing = db.installed.find((a) => a.modId === addon.id);
   console.log("[DEBUG installAddon] existing entry:", existing);
-  if (existing) throw new Error(`${addon.name} is already installed`);
+  if (existing) {
+    console.log("[DEBUG installAddon] Upgrading existing installation:", existing);
+    // Install new version first, then remove old folders (safe rollback)
+  }
 
   let downloadUrl: string | undefined | null = fileDownloadUrl;
   if (!downloadUrl) {
@@ -189,17 +215,33 @@ export async function installAddon(
     throw invokeErr;
   }
 
-  db.installed.push({
-    modId: addon.id,
-    name: addon.name,
-    slug: addon.slug,
-    folderName: entries[0],
-    folderNames: entries,
-    installedFileId: fileId,
-    installedVersion: version,
-    installedAt: new Date().toISOString(),
-  });
-  console.log("[DEBUG installAddon] Pushed to db.installed, saving...");
+  if (existing) {
+    const oldFolders = existing.folderNames?.length ? existing.folderNames : [existing.folderName];
+    for (const name of oldFolders) {
+      const dir = `${folder}/${name}`;
+      if (await exists(dir)) {
+        await remove(dir, { recursive: true });
+      }
+    }
+    existing.folderName = entries[0];
+    existing.folderNames = entries;
+    existing.installedFileId = fileId;
+    existing.installedVersion = version;
+    existing.installedAt = new Date().toISOString();
+    console.log("[DEBUG installAddon] Updated existing entry");
+  } else {
+    db.installed.push({
+      modId: addon.id,
+      name: addon.name,
+      slug: addon.slug,
+      folderName: entries[0],
+      folderNames: entries,
+      installedFileId: fileId,
+      installedVersion: version,
+      installedAt: new Date().toISOString(),
+    });
+    console.log("[DEBUG installAddon] Pushed new entry");
+  }
 
   await saveDb(db);
   console.log("[DEBUG installAddon] saveDb complete");

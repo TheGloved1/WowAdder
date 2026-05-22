@@ -3,7 +3,7 @@ import { useParams, useSearchParams, useLocation, Link, useNavigate } from "reac
 import { listen } from "@tauri-apps/api/event";
 
 import type { CF2Addon, CF2File, CF2Pagination } from "../types/curseforge";
-import { getMod, getModFiles } from "../services/curseforge";
+import { getMod, getModFiles, getModDescription } from "../services/curseforge";
 import {
   getAddonsFolder,
   pickAddonsFolder,
@@ -42,6 +42,8 @@ export default function AddonDetailPage() {
   const [installDone, setInstallDone] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [showingAll, setShowingAll] = useState(false);
+  const [description, setDescription] = useState<string | null>(null);
+  const [descriptionLoading, setDescriptionLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -57,6 +59,15 @@ export default function AddonDetailPage() {
         }
         setAddon(modData);
         setFiles(modData.latestFiles ?? []);
+        setDescriptionLoading(true);
+        try {
+          const desc = await getModDescription(modId);
+          setDescription(desc);
+        } catch {
+          setDescription(null);
+        } finally {
+          setDescriptionLoading(false);
+        }
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to load addon details"
@@ -395,7 +406,7 @@ export default function AddonDetailPage() {
                         <span className="px-3 py-1.5 text-xs rounded-lg bg-gray-600/30 text-gray-400 border border-gray-600/30 cursor-default select-none">
                           Installed ✓
                         </span>
-                      ) : installedInfo ? (
+                      ) : (installedInfo && installedInfo.installedFileId === file.id) ? (
                         <button
                           onClick={handleUninstall}
                           className="px-3 py-1.5 text-xs rounded-lg bg-red-600/20 text-red-400 border border-red-600/30 hover:bg-red-600/30 transition-colors"
@@ -453,6 +464,24 @@ export default function AddonDetailPage() {
               Next
             </button>
           </div>
+        )}
+      </div>
+
+      <div className="border-t border-gray-800 pt-6 mt-6">
+        <h2 className="text-lg font-semibold text-white mb-4">Description</h2>
+        {descriptionLoading ? (
+          <div className="animate-pulse space-y-2">
+            <div className="h-3 bg-gray-800 rounded w-3/4" />
+            <div className="h-3 bg-gray-800 rounded w-1/2" />
+            <div className="h-3 bg-gray-800 rounded w-5/6" />
+          </div>
+        ) : description ? (
+          <div
+            className="prose prose-invert prose-sm max-w-none text-gray-300 [&_a]:text-blue-400 [&_a:hover]:text-blue-300 [&_img]:rounded-lg [&_img]:max-w-full [&_h1]:text-lg [&_h1]:font-bold [&_h1]:text-white [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-white [&_h3]:text-sm [&_h3]:font-medium [&_h3]:text-white [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:text-gray-300 [&_p]:text-gray-300 [&_blockquote]:border-l-4 [&_blockquote]:border-gray-600 [&_blockquote]:pl-4 [&_blockquote]:text-gray-400 [&_pre]:bg-gray-800 [&_pre]:rounded-lg [&_pre]:p-4 [&_pre]:overflow-x-auto [&_code]:text-xs [&_code]:bg-gray-800 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_table]:w-full [&_th]:text-left [&_th]:text-gray-300 [&_th]:font-medium [&_th]:px-3 [&_th]:py-2 [&_td]:px-3 [&_td]:py-2 [&_td]:text-gray-400 [&_tr]:border-b [&_tr]:border-gray-700]"
+            dangerouslySetInnerHTML={{ __html: description }}
+          />
+        ) : (
+          <p className="text-sm text-gray-500">No description available.</p>
         )}
       </div>
     </div>

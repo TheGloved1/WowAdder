@@ -1,6 +1,13 @@
-# Tauri + React + Typescript
+# WowAdder
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+A Tauri-based application for managing World of Warcraft addons.
+
+## Features
+
+- Browse and search CurseForge addons
+- Install addons with a single click
+- Manage installed addons
+- Support for multiple World of Warcraft game versions
 
 ## Recommended IDE Setup
 
