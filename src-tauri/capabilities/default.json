@@ -16,6 +16,7 @@
     "fs:allow-exists",
     "fs:allow-mkdir",
     "store:default",
+    "updater:default",
     {
       "identifier": "fs:scope",
       "allow": ["**"]

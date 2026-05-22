@@ -46,11 +46,20 @@ jobs:
 
       - name: Build Tauri app
         run: bun tauri build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Generate updater.json
+        shell: bash
+        run: bash scripts/generate-updater-json.sh
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: src-tauri/target/release/bundle/msi/*.msi
+          files: |
+            src-tauri/target/release/bundle/msi/*.msi
+            updater.json
           generate_release_notes: true
           draft: false
           prerelease: false

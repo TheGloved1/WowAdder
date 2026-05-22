@@ -31,5 +31,11 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": ["https://github.com/TheGloved1/WowAdder/releases/latest/download/updater.json"],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDhBNTQ5RDc0RERFNTJERjgKUldUNExlWGRkSjFVaXREZWpVeWo4ckowbHVpRjBpTmd2Y3pTMFhFVVBZekdBN2lvdnZqb2lGMlQK"
+    }
   }
 }
