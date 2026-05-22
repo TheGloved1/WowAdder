@@ -1,13 +1,13 @@
 # WowAdder
 
-A Tauri-based application for managing World of Warcraft addons.
+A simple Tauri-based application for managing World of Warcraft addons.
 
 ## Features
 
 - Browse and search CurseForge addons
 - Install addons with a single click
 - Manage installed addons
-- Support for multiple World of Warcraft game versions
+- Support for almost all World of Warcraft game versions
 
 ## Recommended IDE Setup
 
