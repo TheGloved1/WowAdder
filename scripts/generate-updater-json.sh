@@ -27,14 +27,16 @@ fi
 # Still no sig? Try manual signing via the private key from env
 if [ ! -f "$SIG_FILE" ] && [ -n "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
   echo "Attempting manual signature generation..."
-  SIGNATURE=$(SHELL=/bin/bash bun tauri signer sign \
+  SIGNER_OUTPUT=$(SHELL=/bin/bash bun tauri signer sign \
     -k "$TAURI_SIGNING_PRIVATE_KEY" \
     -p "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" \
     "$MSI_FILE" 2>/dev/null || true)
+  # Extract the line after "Public signature:" — that's the actual base64 signature
+  SIGNATURE=$(echo "$SIGNER_OUTPUT" | sed -n '/^Public signature:/{n;p}')
   if [ -n "$SIGNATURE" ]; then
-    echo "$SIGNATURE" > "${MSI_FILE}.sig"
     SIG_FILE="${MSI_FILE}.sig"
-    echo "Manual signature generated"
+    echo "$SIGNATURE" > "$SIG_FILE"
+    echo "Manual signature generated successfully"
   fi
 fi
 
