@@ -7,7 +7,7 @@ A simple Tauri-based application for managing World of Warcraft addons.
 - Browse and search CurseForge addons
 - Install addons with a single click
 - Manage installed addons
-- Support for almost all World of Warcraft game versions
+- Support for almost any World of Warcraft game version
 
 ## Recommended IDE Setup
 
