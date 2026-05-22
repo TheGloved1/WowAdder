@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install WiX (for MSI bundling)
+        run: dotnet tool install --global wix --version 4.0.5
+
+      - name: Verify tag matches package.json
+        shell: bash
+        run: |
+          TAG_VER="${GITHUB_REF_NAME#v}"
+          PKG_VER="$(bun -e "console.log(require('./package.json').version)")"
+          if [ "$TAG_VER" != "$PKG_VER" ]; then
+            echo "Tag version ($TAG_VER) does not match package.json ($PKG_VER)"
+            exit 1
+          fi
+          echo "Version OK: $PKG_VER"
+
+      - name: Install frontend dependencies
+        run: bun install
+
+      - name: Sync version to Cargo.toml and tauri.conf.json
+        run: bun scripts/sync-version.js
+
+      - name: Inject CurseForge API key
+        shell: bash
+        run: echo "VITE_CURSEFORGE_API_KEY=${{ secrets.CURSEFORGE_API_KEY }}" > .env
+
+      - name: Build Tauri app
+        run: bun tauri build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: src-tauri/target/release/bundle/msi/*.msi
+          generate_release_notes: true
+          draft: false
+          prerelease: false
