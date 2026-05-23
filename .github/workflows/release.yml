@@ -46,6 +46,11 @@ jobs:
 
       - name: Setup cargo cache
         uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "src-tauri"
+          cache-on-failure: true
+          cache-bin: false
+          cache-all-crates: true
 
       - name: Build Tauri app
         run: bun tauri build
