@@ -31,6 +31,10 @@
   <img src="public/banner.png" alt="WowAdder Banner" width="100%">
 </div>
 
+<p align="center">
+  Yes, this is AI... and yes, it's shit!
+</p>
+
 ## Features
 
 <p align="center">
@@ -48,8 +52,8 @@
 - **Browse & search** — Find addons on CurseForge by name, category, or game version
 - **One-click install** — Install directly to your `Interface/AddOns` folder
 - **Version-aware filtering** — View only compatible files per WoW patch
-- **External addon detection** — Scans your AddOns folder and matches addons to CurseForge
-- **Batch sync** — Match and import multiple external addons at once
+- **External addon detection (WIP)** — Scans your AddOns folder and matches addons to CurseForge
+- **Batch sync (WIP)** — Match and import multiple external addons at once
 - **ZIP import** — Drag-and-drop archive imports extracted by the Rust backend
 - **Smart upgrades** — Downloads new versions before removing old files (safe rollback)
 - **Automatic updates** — Built-in Tauri updater keeps the app current
