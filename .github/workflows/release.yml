@@ -47,6 +47,8 @@ jobs:
             ~/.cargo/git/db/
             src-tauri/target/
           key: ${{ runner.os }}-cargo-release
+          restore-keys: |
+            ${{ runner.os }}-cargo-
 
       - name: Sync version to Cargo.toml and tauri.conf.json
         run: bun scripts/sync-version.js
