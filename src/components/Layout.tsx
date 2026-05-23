@@ -98,7 +98,7 @@ export default function Layout() {
         <div className="absolute inset-0 bg-linear-to-b from-wow-border-gold/5 to-transparent pointer-events-none" />
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between relative">
           <div className="flex items-center gap-3 hover:opacity-80 transition-opacity group">
-            <div className="w-8 h-8 rounded-sm bg-linear-to-br from-wow-gold to-wow-border-gold flex items-center justify-center shadow-[0_0_8px_rgba(251,191,36,0.2)]">
+            <div className="w-8 h-8 rounded-sm bg-linear-to-br from-wow-gold via-wow-gold-dim to-wow-border-gold/60 flex items-center justify-center shadow-[0_0_8px_rgba(251,191,36,0.2)]">
               <img src="/logo.png" alt="WowAdder" className="w-8 h-8" />
             </div>
             <span className="font-wow-heading text-lg tracking-wider text-wow-gold group-hover:text-wow-gold/80 transition-colors">
