@@ -9,7 +9,9 @@ import {
   uninstallAddon,
   scanAddonsFolder,
   matchScannedAddon,
+  matchAllScannedAddons,
   adoptScannedAddon,
+  adoptAllScannedAddons,
   importZip,
 } from "../services/addonManager";
 import type { InstalledAddon, ScannedAddon } from "../services/addonManager";
@@ -25,8 +27,11 @@ export default function InstalledPage() {
   const [scanning, setScanning] = useState(false);
   const [uninstalling, setUninstalling] = useState<number | null>(null);
   const [matching, setMatching] = useState<Set<string>>(new Set());
+  const [batchMatching, setBatchMatching] = useState(false);
   const [adopting, setAdopting] = useState<string | null>(null);
+  const [batchAdopting, setBatchAdopting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -63,6 +68,7 @@ export default function InstalledPage() {
   async function handleScan() {
     setScanning(true);
     setScanned([]);
+    setBatchProgress(null);
     try {
       const results = await scanAddonsFolder();
       setScanned(results);
@@ -90,17 +96,63 @@ export default function InstalledPage() {
     }
   }
 
+  async function handleMatchAll() {
+    const unmatched = scanned.filter((s) => !s.matched);
+    if (unmatched.length === 0) return;
+    setBatchMatching(true);
+    try {
+      const updated = await matchAllScannedAddons(scanned, (i, total, name) => {
+        setBatchProgress(`Matching ${i + 1}/${total}: ${name}`);
+      });
+      setScanned(updated);
+    } finally {
+      setBatchMatching(false);
+      setBatchProgress(null);
+    }
+  }
+
   async function handleAdopt(folderName: string) {
     setAdopting(folderName);
     try {
       const item = scanned.find((s) => s.folderName === folderName);
       if (item && item.matchModId) {
-        await adoptScannedAddon(item);
-        await refresh();
-        setScanned((prev) => prev.filter((s) => s.folderName !== folderName));
+        const result = await adoptScannedAddon(item);
+        if (result.adoptError) {
+          setScanned((prev) =>
+            prev.map((s) => (s.folderName === folderName ? result : s)),
+          );
+        } else {
+          await refresh();
+          setScanned((prev) => prev.filter((s) => s.folderName !== folderName));
+        }
       }
     } finally {
       setAdopting(null);
+    }
+  }
+
+  async function handleAdoptAll() {
+    const matchable = scanned.filter((s) => s.matched && s.matchModId);
+    if (matchable.length === 0) return;
+    setBatchAdopting(true);
+    try {
+      const failed = await adoptAllScannedAddons(scanned, (i, total, name) => {
+        setBatchProgress(`Importing ${i + 1}/${total}: ${name}`);
+      });
+      await refresh();
+      if (failed.length > 0) {
+        setScanned((prev) =>
+          prev.map((s) => {
+            const f = failed.find((x) => x.folderName === s.folderName);
+            return f || (s.matched && s.matchModId ? { ...s, adoptError: undefined } : s);
+          }).filter((s) => !(s.matched && s.matchModId && !s.adoptError)),
+        );
+      } else {
+        setScanned([]);
+      }
+    } finally {
+      setBatchAdopting(false);
+      setBatchProgress(null);
     }
   }
 
@@ -109,8 +161,13 @@ export default function InstalledPage() {
     try {
       const entries = await importZip();
       if (entries.length > 0) {
+        // Re-scan to pick up newly extracted addons
         const results = await scanAddonsFolder();
-        setScanned(results);
+        setScanned((prev) => {
+          const existingNames = new Set(prev.map((s) => s.folderName));
+          const newItems = results.filter((r) => !existingNames.has(r.folderName));
+          return [...prev, ...newItems];
+        });
       }
     } catch (err) {
       console.error("Import failed", err);
@@ -118,6 +175,9 @@ export default function InstalledPage() {
       setImporting(false);
     }
   }
+
+  const unmatchedCount = scanned.filter((s) => !s.matched).length;
+  const matchableCount = scanned.filter((s) => s.matched && s.matchModId && !s.adoptError).length;
 
   if (loading) {
     return (
@@ -232,22 +292,57 @@ export default function InstalledPage() {
 
       {scanned.length > 0 && (
         <div className="mb-6">
-          <h3 className="text-sm font-wow-heading tracking-wide text-wow-quality-orange mb-2 flex items-center gap-1.5">
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-            {scanned.length} external addon{scanned.length !== 1 ? "s" : ""} detected
-          </h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-wow-heading tracking-wide text-wow-quality-orange flex items-center gap-1.5">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+              {scanned.length} external addon{scanned.length !== 1 ? "s" : ""} detected
+            </h3>
+            <div className="flex items-center gap-2">
+              {unmatchedCount > 0 && (
+                <WoWButton
+                  variant="default"
+                  size="sm"
+                  onClick={handleMatchAll}
+                  disabled={batchMatching}
+                >
+                  {batchMatching ? "Matching..." : `Match All (${unmatchedCount})`}
+                </WoWButton>
+              )}
+              {matchableCount > 0 && (
+                <WoWButton
+                  variant="primary"
+                  size="sm"
+                  onClick={handleAdoptAll}
+                  disabled={batchAdopting}
+                >
+                  {batchAdopting ? "Importing..." : `Import All (${matchableCount})`}
+                </WoWButton>
+              )}
+            </div>
+          </div>
+
+          {batchProgress && (
+            <div className="mb-3 flex items-center gap-2 text-xs text-wow-gold bg-wow-border-gold/10 border border-wow-border-gold/30 rounded-sm px-3 py-2">
+              <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              {batchProgress}
+            </div>
+          )}
+
           <div className="space-y-2">
             {scanned.map((item) => (
               <div
@@ -262,9 +357,28 @@ export default function InstalledPage() {
                     {item.folderName}
                     {item.version ? ` v${item.version}` : ""}
                   </p>
+                  {item.matchError && (
+                    <p className="text-[10px] text-wow-quality-orange mt-0.5">
+                      {item.matchError}
+                    </p>
+                  )}
+                  {item.adoptError && (
+                    <p className="text-[10px] text-wow-danger mt-0.5">
+                      {item.adoptError}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0 ml-3">
-                  {item.matched && item.matchAddon ? (
+                  {item.adoptError ? (
+                    <WoWButton
+                      variant="danger"
+                      size="sm"
+                      onClick={() => handleMatch(item.folderName)}
+                      disabled={matching.has(item.folderName)}
+                    >
+                      {matching.has(item.folderName) ? "..." : "Retry"}
+                    </WoWButton>
+                  ) : item.matched && item.matchAddon ? (
                     <>
                       <span className="text-xs text-wow-quality-green font-wow-heading tracking-wide">
                         {item.matchAddon.name}
@@ -273,7 +387,7 @@ export default function InstalledPage() {
                         variant="primary"
                         size="sm"
                         onClick={() => handleAdopt(item.folderName)}
-                        disabled={adopting === item.folderName}
+                        disabled={adopting === item.folderName || batchAdopting}
                       >
                         {adopting === item.folderName ? "..." : "Import"}
                       </WoWButton>
@@ -283,7 +397,7 @@ export default function InstalledPage() {
                       variant="default"
                       size="sm"
                       onClick={() => handleMatch(item.folderName)}
-                      disabled={matching.has(item.folderName)}
+                      disabled={matching.has(item.folderName) || batchMatching}
                     >
                       {matching.has(item.folderName) ? "Matching..." : "Match"}
                     </WoWButton>

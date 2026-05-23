@@ -61,9 +61,17 @@ export default function BrowsePage() {
   );
   const [editingPage, setEditingPage] = useState(false);
   const editInputRef = useRef<HTMLInputElement>(null);
+  const submittingRef = useRef(false);
   const [pageSize, setPageSize] = useState(
     Number(searchParams.get("pageSize")) || prefs.pageSize
   );
+
+  useEffect(() => {
+    if (editingPage && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [editingPage]);
 
   const categories = getCategories();
   const clientStatus = getClientStatus();
@@ -199,21 +207,35 @@ export default function BrowsePage() {
   }
 
   function handleEditSubmit() {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     const input = editInputRef.current;
-    if (!input) return;
-    const page = Number(input.value);
-    if (!isNaN(page) && page >= 1 && page <= totalPages) {
-      handlePageChange(page - 1);
+    if (!input) { submittingRef.current = false; return; }
+    const val = Number(input.value);
+    if (isNaN(val) || val < 1 || val > totalPages) {
+      setEditingPage(false);
+      submittingRef.current = false;
+      return;
     }
+    const newPage = val - 1;
+    setCurrentPage(newPage);
+    syncUrl(selectedVersion, searchQuery, selectedCategoryId, sortOption.field, sortOption.order, pageSize, newPage);
+    fetchAddons(newPage);
     setEditingPage(false);
+    submittingRef.current = false;
   }
 
   function handleCurrentPageClick() {
     setEditingPage(true);
-    setTimeout(() => {
-      editInputRef.current?.focus();
-      editInputRef.current?.select();
-    }, 0);
+  }
+
+  function handleInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleEditSubmit();
+    } else if (e.key === "Escape") {
+      setEditingPage(false);
+    }
   }
 
   const totalPages = pagination
@@ -336,7 +358,7 @@ export default function BrowsePage() {
                           min={1}
                           max={totalPages}
                           defaultValue={p + 1}
-                          onKeyDown={(e) => { if (e.key === "Enter") handleEditSubmit(); if (e.key === "Escape") setEditingPage(false); }}
+                          onKeyDown={handleInputKeyDown}
                           onBlur={handleEditSubmit}
                           className="w-10 h-8 text-xs text-center bg-wow-panel border border-wow-border-gold rounded-sm text-wow-text focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />

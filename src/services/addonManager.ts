@@ -275,6 +275,34 @@ export interface ScannedAddon {
   matched: boolean;
   matchModId?: number;
   matchAddon?: CF2Addon;
+  matchError?: string;
+  adoptError?: string;
+}
+
+async function findTocFiles(dirPath: string): Promise<{ name: string | null; version: string | null } | null> {
+  try {
+    const entries = await readDir(dirPath);
+    for (const entry of entries) {
+      if (entry.name && entry.name.endsWith(".toc") && !entry.isDirectory) {
+        const content = await readTextFile(`${dirPath}/${entry.name}`);
+        let name: string | null = null;
+        let version: string | null = null;
+        for (const line of content.split("\n")) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith("## Title: ")) name = trimmed.slice(10).trim();
+          else if (trimmed.startsWith("## Version: ")) version = trimmed.slice(12).trim();
+        }
+        return { name, version };
+      }
+      if (entry.name && entry.isDirectory && !entry.name.startsWith(".")) {
+        const sub = await findTocFiles(`${dirPath}/${entry.name}`);
+        if (sub) return sub;
+      }
+    }
+  } catch {
+    // skip unreadable directories
+  }
+  return null;
 }
 
 export async function scanAddonsFolder(): Promise<ScannedAddon[]> {
@@ -285,44 +313,27 @@ export async function scanAddonsFolder(): Promise<ScannedAddon[]> {
   const results: ScannedAddon[] = [];
   const db = await loadDb();
 
+  const isAlreadyTracked = (folderName: string): boolean => {
+    if (!db) return false;
+    return db.installed.some(
+      (a) =>
+        a.folderName === folderName ||
+        (a.folderNames && a.folderNames.includes(folderName)),
+    );
+  };
+
   for (const entry of entries) {
     if (!entry.name || !entry.isDirectory) continue;
     if (entry.name.startsWith(".")) continue;
     if (entry.name === ".." || entry.name === ".") continue;
+    if (isAlreadyTracked(entry.name)) continue;
 
-    const alreadyInstalled = db?.installed.find(
-      (a) => a.folderName === entry.name,
-    );
-    if (alreadyInstalled) continue;
-
-    let name: string | null = null;
-    let version: string | null = null;
-
-    try {
-      const dirEntries = await readDir(`${folder}/${entry.name}`);
-      for (const file of dirEntries) {
-        if (file.name && file.name.endsWith(".toc") && !file.isDirectory) {
-          const content = await readTextFile(
-            `${folder}/${entry.name}/${file.name}`,
-          );
-          for (const line of content.split("\n")) {
-            const trimmed = line.trim();
-            if (trimmed.startsWith("## Title: ")) {
-              name = trimmed.slice(10).trim();
-            } else if (trimmed.startsWith("## Version: ")) {
-              version = trimmed.slice(12).trim();
-            }
-          }
-        }
-      }
-    } catch {
-      // skip unreadable folders
-    }
+    const toc = await findTocFiles(`${folder}/${entry.name}`);
 
     results.push({
       folderName: entry.name,
-      name,
-      version,
+      name: toc?.name ?? null,
+      version: toc?.version ?? null,
       matched: false,
     });
   }
@@ -337,58 +348,128 @@ export async function matchScannedAddon(
 
   try {
     const searchName = scanned.name || scanned.folderName;
-    const result = await searchMods({ searchFilter: searchName, pageSize: 5 });
+    const result = await searchMods({ searchFilter: searchName, pageSize: 10 });
+    const addons = result.addons;
 
-    for (const addon of result.addons) {
-      if (addon.name.toLowerCase() === searchName.toLowerCase()) {
-        return {
-          ...scanned,
-          matched: true,
-          matchModId: addon.id,
-          matchAddon: addon,
-        };
-      }
+    if (addons.length === 0) {
+      return { ...scanned, matched: false, matchError: "No results from CurseForge" };
     }
 
-    if (result.addons.length > 0) {
-      return {
-        ...scanned,
-        matched: true,
-        matchModId: result.addons[0].id,
-        matchAddon: result.addons[0],
-      };
+    const searchLower = searchName.toLowerCase();
+    const folderLower = scanned.folderName.toLowerCase();
+
+    const exactName = addons.find((a) => a.name.toLowerCase() === searchLower);
+    if (exactName) {
+      return { ...scanned, matched: true, matchModId: exactName.id, matchAddon: exactName };
     }
-  } catch {
-    // matching failed
+
+    const exactFolder = addons.find((a) => a.slug?.toLowerCase() === folderLower || a.name.toLowerCase() === folderLower);
+    if (exactFolder) {
+      return { ...scanned, matched: true, matchModId: exactFolder.id, matchAddon: exactFolder };
+    }
+
+    const partialName = addons.find(
+      (a) => a.name.toLowerCase().includes(searchLower) || searchLower.includes(a.name.toLowerCase()),
+    );
+    if (partialName) {
+      return { ...scanned, matched: true, matchModId: partialName.id, matchAddon: partialName };
+    }
+
+    return {
+      ...scanned,
+      matched: true,
+      matchModId: addons[0].id,
+      matchAddon: addons[0],
+      matchError: `Best guess: "${addons[0].name}"`,
+    };
+  } catch (err) {
+    return {
+      ...scanned,
+      matched: false,
+      matchError: err instanceof Error ? err.message : "Match request failed",
+    };
   }
-
-  return scanned;
 }
 
-export async function adoptScannedAddon(scanned: ScannedAddon): Promise<void> {
-  if (!scanned.matchModId)
-    throw new Error("Cannot adopt addon without a match");
+export async function adoptScannedAddon(scanned: ScannedAddon): Promise<ScannedAddon> {
+  if (!scanned.matchModId) {
+    return { ...scanned, adoptError: "No match to adopt" };
+  }
 
-  const folder = await getAddonsFolder();
-  if (!folder) throw new Error("Addons folder not configured");
+  try {
+    const folder = await getAddonsFolder();
+    if (!folder) throw new Error("Addons folder not configured");
 
-  const db = await loadDb();
-  if (!db) throw new Error("Could not load database");
+    const db = await loadDb();
+    if (!db) throw new Error("Could not load database");
 
-  const addon = scanned.matchAddon || (await getMod(scanned.matchModId));
-  if (!addon) throw new Error("Could not load addon data");
+    const alreadyInDb = db.installed.find(
+      (a) =>
+        a.folderName === scanned.folderName ||
+        (a.folderNames && a.folderNames.includes(scanned.folderName)),
+    );
+    if (alreadyInDb) {
+      return { ...scanned, adoptError: "Already in database" };
+    }
 
-  db.installed.push({
-    modId: addon.id,
-    name: addon.name,
-    slug: addon.slug,
-    folderName: scanned.folderName,
-    installedFileId: addon.mainFileId,
-    installedVersion: scanned.version,
-    installedAt: new Date().toISOString(),
-  });
+    const addon = scanned.matchAddon || (await getMod(scanned.matchModId));
+    if (!addon) throw new Error("Could not load addon data");
 
-  await saveDb(db);
+    db.installed.push({
+      modId: addon.id,
+      name: addon.name,
+      slug: addon.slug,
+      folderName: scanned.folderName,
+      installedFileId: addon.mainFileId,
+      installedVersion: scanned.version,
+      installedAt: new Date().toISOString(),
+    });
+
+    await saveDb(db);
+    return { ...scanned, adoptError: undefined };
+  } catch (err) {
+    return {
+      ...scanned,
+      adoptError: err instanceof Error ? err.message : "Adoption failed",
+    };
+  }
+}
+
+export async function matchAllScannedAddons(
+  scanned: ScannedAddon[],
+  onProgress?: (matched: number, total: number, name: string) => void,
+): Promise<ScannedAddon[]> {
+  const results: ScannedAddon[] = [];
+  for (let i = 0; i < scanned.length; i++) {
+    const item = scanned[i];
+    if (item.matched) {
+      results.push(item);
+      continue;
+    }
+    onProgress?.(i, scanned.length, item.name || item.folderName);
+    const matched = await matchScannedAddon(item);
+    results.push(matched);
+  }
+  return results;
+}
+
+export async function adoptAllScannedAddons(
+  scanned: ScannedAddon[],
+  onProgress?: (adopted: number, total: number, name: string) => void,
+): Promise<ScannedAddon[]> {
+  const results: ScannedAddon[] = [];
+  let adoptedCount = 0;
+  for (const item of scanned) {
+    if (!item.matched || !item.matchModId) {
+      results.push({ ...item, adoptError: item.adoptError || "Not matched" });
+      continue;
+    }
+    onProgress?.(adoptedCount, scanned.length, item.matchAddon?.name || item.folderName);
+    const result = await adoptScannedAddon(item);
+    if (!result.adoptError) adoptedCount++;
+    results.push(result);
+  }
+  return results.filter((r) => r.adoptError);
 }
 
 export async function importZip(): Promise<string[]> {

@@ -17,6 +17,12 @@ import WoWBadge from "../components/wow/WoWBadge";
 import WoWButton from "../components/wow/WoWButton";
 import WoWDivider from "../components/wow/WoWDivider";
 
+function maybeParmajawn() {
+  if (Math.random() < 0.02) {
+    window.dispatchEvent(new CustomEvent("parmajawn"));
+  }
+}
+
 const PAGE_SIZE = 10;
 
 export default function AddonDetailPage() {
@@ -64,6 +70,7 @@ export default function AddonDetailPage() {
         }
         setAddon(modData);
         setFiles(modData.latestFiles ?? []);
+        maybeParmajawn();
         setDescriptionLoading(true);
         try {
           const desc = await getModDescription(modId);
@@ -182,6 +189,7 @@ export default function AddonDetailPage() {
       );
       console.log("[DEBUG] installAddon completed successfully");
       setInstallDone(true);
+      maybeParmajawn();
       setInstalledInfo(isAddonInstalled(addon.id));
     } catch (err) {
       console.log("[DEBUG] installAddon threw an error:", err);
