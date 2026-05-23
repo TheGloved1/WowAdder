@@ -23,7 +23,7 @@ export default function ParmajawnEasterEgg() {
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-none"
+      className="fixed inset-0 z-9999 flex items-center justify-center pointer-events-none"
       style={{
         animation: "parmajawnFadeIn 0.2s ease-out",
       }}

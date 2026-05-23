@@ -1,5 +1,5 @@
 [package]
-name = "wowadder"
+name = "WowAdder"
 version = "0.2.1"
 description = "A Tauri App for managing World of Warcraft addons"
 authors = ["TheGloved1"]
