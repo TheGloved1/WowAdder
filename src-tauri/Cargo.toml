@@ -1,6 +1,6 @@
 [package]
 name = "wowadder"
-version = "0.2.0"
+version = "0.2.1"
 description = "A Tauri App for managing World of Warcraft addons"
 authors = ["TheGloved1"]
 edition = "2021"
