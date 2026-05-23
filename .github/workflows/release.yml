@@ -37,8 +37,9 @@ jobs:
       - name: Install frontend dependencies
         run: bun install
 
-      - name: Setup cargo cache
-        uses: actions/cache@v4
+      - name: Restore cargo cache
+        id: cargo-cache
+        uses: actions/cache/restore@v4
         continue-on-error: true
         with:
           path: |
@@ -80,3 +81,14 @@ jobs:
           generate_release_notes: true
           draft: false
           prerelease: false
+
+      - name: Save cargo cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            src-tauri/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}

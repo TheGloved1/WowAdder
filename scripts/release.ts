@@ -51,7 +51,7 @@ Examples:
   // Check required tools
   // ---------------------------------------------------------------------------
 
-  for (const cmd of ["git", "cargo"]) {
+  for (const cmd of ["git"]) {
     try {
       execSync(`where ${cmd}`, { stdio: "ignore" });
     } catch {
@@ -134,32 +134,6 @@ Examples:
   pkg.version = next;
   writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
   ok("package.json");
-
-  // src-tauri/tauri.conf.json
-  const conf = JSON.parse(readFileSync("src-tauri/tauri.conf.json", "utf-8"));
-  conf.version = next;
-  writeFileSync(
-    "src-tauri/tauri.conf.json",
-    JSON.stringify(conf, null, 2) + "\n",
-  );
-  ok("src-tauri/tauri.conf.json");
-
-  // src-tauri/Cargo.toml
-  const cargo = readFileSync("src-tauri/Cargo.toml", "utf-8");
-  const updatedCargo = cargo.replace(
-    /^(version\s*=\s*)"[^"]*"/m,
-    `$1"${next}"`,
-  );
-  writeFileSync("src-tauri/Cargo.toml", updatedCargo);
-  ok("src-tauri/Cargo.toml");
-
-  // ---------------------------------------------------------------------------
-  // Regenerate Cargo.lock
-  // ---------------------------------------------------------------------------
-
-  step("Regenerating Cargo.lock");
-  execSync("cargo generate-lockfile --quiet", { cwd: "src-tauri" });
-  ok("Cargo.lock");
 
   // ---------------------------------------------------------------------------
   // Generate changelog
@@ -264,7 +238,7 @@ Examples:
     if (looksGood.toLowerCase() !== "y") {
       console.log(`
 Edit CHANGELOG.md manually, then run:
-  git add package.json src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/tauri.conf.json CHANGELOG.md
+  git add package.json CHANGELOG.md
   git commit -m "chore: release v${next}"
   git tag -a v${next} -m "Release v${next}"
   git push origin main --tags
@@ -281,9 +255,6 @@ Edit CHANGELOG.md manually, then run:
 
   const filesToAdd = [
     "package.json",
-    "src-tauri/Cargo.toml",
-    "src-tauri/Cargo.lock",
-    "src-tauri/tauri.conf.json",
     ...(skipChangelog ? [] : ["CHANGELOG.md"]),
   ];
   execSync(`git add ${filesToAdd.join(" ")}`, { encoding: "utf-8" });
