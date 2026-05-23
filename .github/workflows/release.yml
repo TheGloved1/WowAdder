@@ -38,12 +38,17 @@ jobs:
         run: bun install
 
       - name: Setup cargo cache
-        uses: Swatinem/rust-cache@v2
+        uses: actions/cache@v4
+        continue-on-error: true
         with:
-          workspaces: "src-tauri"
-          cache-on-failure: true
-          cache-bin: false
-          cache-all-crates: true
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            src-tauri/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
 
       - name: Sync version to Cargo.toml and tauri.conf.json
         run: bun scripts/sync-version.js
