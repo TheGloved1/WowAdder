@@ -5,10 +5,11 @@ const apiKey = import.meta.env.VITE_CURSEFORGE_API_KEY;
 let client: CFV2Client | null = null;
 
 function getClient(): CFV2Client {
+  console.log("Getting CurseForge client...");
   if (!client) {
     if (!apiKey || apiKey === "your_curseforge_api_key_here") {
       throw new Error(
-        "CurseForge API key not configured. Set VITE_CURSEFORGE_API_KEY in your .env file."
+        "CurseForge API key not configured. Set VITE_CURSEFORGE_API_KEY in your .env file.",
       );
     }
     client = new CFV2Client({ apiKey });
@@ -25,6 +26,7 @@ export function getClientStatus(): { configured: boolean; keyPreview: string } {
 }
 
 export async function getGameVersions(gameId: number = 1) {
+  console.log("Getting game versions...");
   const c = getClient();
   const result = await c.getGameVersions(gameId);
   return result.data?.data ?? [];
@@ -41,6 +43,7 @@ export async function searchMods(params: {
   index?: number;
   pageSize?: number;
 }) {
+  console.log("Searching mods...");
   const c = getClient();
   const result = await c.searchMods({
     gameId: params.gameId ?? 1,
@@ -61,7 +64,7 @@ export async function searchMods(params: {
 
 export async function getFeaturedMods(
   gameVersionTypeId?: number,
-  excludedModIds: number[] = []
+  excludedModIds: number[] = [],
 ) {
   const c = getClient();
   const result = await c.getFeaturedMods({
@@ -69,10 +72,13 @@ export async function getFeaturedMods(
     gameVersionTypeId,
     excludedModIds,
   });
-  return result.data?.data ?? { featured: [], popular: [], recentlyUpdated: [] };
+  return (
+    result.data?.data ?? { featured: [], popular: [], recentlyUpdated: [] }
+  );
 }
 
 export async function getMod(modId: number) {
+  console.log("Getting mod...");
   const c = getClient();
   const result = await c.getMod(modId);
   return result.data?.data;
@@ -85,8 +91,9 @@ export async function getModFiles(
     gameVersionTypeId?: number;
     index?: number;
     pageSize?: number;
-  }
+  },
 ) {
+  console.log("Getting mod files...");
   const c = getClient();
   const result = await c.getModFiles({
     modId,
@@ -102,13 +109,25 @@ export async function getModFiles(
 }
 
 export async function getModFileDownloadUrl(modId: number, fileId: number) {
+  console.log("Getting mod file download URL...");
   const c = getClient();
   const result = await c.getModFileDownloadUrl(modId, fileId);
-  console.log("[DEBUG getModFileDownloadUrl] full result:", JSON.stringify(result));
+  console.log(
+    "[DEBUG getModFileDownloadUrl] full result:",
+    JSON.stringify(result),
+  );
   if (result.data) {
-    console.log("[DEBUG getModFileDownloadUrl] result.data.data:", result.data.data);
+    console.log(
+      "[DEBUG getModFileDownloadUrl] result.data.data:",
+      result.data.data,
+    );
   } else {
-    console.log("[DEBUG getModFileDownloadUrl] result.data is undefined/null, statusCode:", result.statusCode, "message:", result.message);
+    console.log(
+      "[DEBUG getModFileDownloadUrl] result.data is undefined/null, statusCode:",
+      result.statusCode,
+      "message:",
+      result.message,
+    );
   }
   return result.data?.data ?? null;
 }
@@ -199,11 +218,14 @@ export interface CategoryOption {
 
 export function getCategories(): CategoryOption[] {
   const ALL_CATEGORY = { id: 0, name: "All Addons" };
-  return [ALL_CATEGORY, ...Object.entries(categoryNames)
-    .filter(([id]) => id !== "0")
-    .map(([id, name]) => ({
-      id: Number(id),
-      name,
-    }))
-    .sort((a, b) => a.name.localeCompare(b.name))];
+  return [
+    ALL_CATEGORY,
+    ...Object.entries(categoryNames)
+      .filter(([id]) => id !== "0")
+      .map(([id, name]) => ({
+        id: Number(id),
+        name,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+  ];
 }
