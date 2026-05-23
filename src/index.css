@@ -23,6 +23,66 @@
   --font-wow-body: 'Inter', system-ui, sans-serif;
 }
 
+[data-theme="emerald"] {
+  --color-wow-bg: #0a0f0b;
+  --color-wow-panel: #111a14;
+  --color-wow-panel-hover: #1a2a20;
+  --color-wow-border: #1a2a20;
+  --color-wow-border-light: #24402e;
+  --color-wow-border-gold: #2d7a3f;
+  --color-wow-border-gold-bright: #34d973;
+  --color-wow-gold: #34d973;
+  --color-wow-gold-dim: #248f4a;
+  --color-wow-text: #ecfdf0;
+  --color-wow-text-dim: #86ef9e;
+  --color-wow-text-muted: #4ade6b;
+}
+
+[data-theme="crimson"] {
+  --color-wow-bg: #0f0808;
+  --color-wow-panel: #1c0f0f;
+  --color-wow-panel-hover: #2e1818;
+  --color-wow-border: #2e1818;
+  --color-wow-border-light: #4a2020;
+  --color-wow-border-gold: #9f1239;
+  --color-wow-border-gold-bright: #e11d48;
+  --color-wow-gold: #fb7185;
+  --color-wow-gold-dim: #e11d48;
+  --color-wow-text: #fef2f2;
+  --color-wow-text-dim: #fca5a5;
+  --color-wow-text-muted: #f87171;
+}
+
+[data-theme="nightelf"] {
+  --color-wow-bg: #0b0910;
+  --color-wow-panel: #15112a;
+  --color-wow-panel-hover: #211a3e;
+  --color-wow-border: #211a3e;
+  --color-wow-border-light: #312650;
+  --color-wow-border-gold: #6d28d9;
+  --color-wow-border-gold-bright: #a78bfa;
+  --color-wow-gold: #a78bfa;
+  --color-wow-gold-dim: #7c3aed;
+  --color-wow-text: #f3e8ff;
+  --color-wow-text-dim: #c4b5fd;
+  --color-wow-text-muted: #8b5cf6;
+}
+
+[data-theme="frost"] {
+  --color-wow-bg: #070b0f;
+  --color-wow-panel: #0e1620;
+  --color-wow-panel-hover: #162433;
+  --color-wow-border: #162433;
+  --color-wow-border-light: #1e3550;
+  --color-wow-border-gold: #1d6fa5;
+  --color-wow-border-gold-bright: #38bdf8;
+  --color-wow-gold: #38bdf8;
+  --color-wow-gold-dim: #0284c7;
+  --color-wow-text: #f0f9ff;
+  --color-wow-text-dim: #7dd3fc;
+  --color-wow-text-muted: #38bdf8;
+}
+
 body {
   font-family: var(--font-wow-body);
   background-color: var(--color-wow-bg);

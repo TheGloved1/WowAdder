@@ -126,6 +126,17 @@ export default function Layout() {
             >
               Installed
             </Link>
+            <div className="w-px h-4 bg-wow-border-light mx-1" />
+            <Link
+              to="/settings"
+              className={`px-3 py-1.5 text-sm font-wow-heading tracking-wider uppercase transition-all duration-150 relative ${
+                location.pathname === "/settings"
+                  ? "text-wow-gold after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-3/4 after:h-px after:bg-wow-gold/60"
+                  : "text-wow-text-dim hover:text-wow-text"
+              }`}
+            >
+              Settings
+            </Link>
           </nav>
         </div>
       </header>
