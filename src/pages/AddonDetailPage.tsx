@@ -11,6 +11,11 @@ import {
   installAddon,
   uninstallAddon,
 } from "../services/addonManager";
+import WoWPanel from "../components/wow/WoWPanel";
+import WoWIconFrame from "../components/wow/WoWIcon";
+import WoWBadge from "../components/wow/WoWBadge";
+import WoWButton from "../components/wow/WoWButton";
+import WoWDivider from "../components/wow/WoWDivider";
 
 const PAGE_SIZE = 10;
 
@@ -213,9 +218,9 @@ export default function AddonDetailPage() {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-800 rounded w-1/3" />
-          <div className="h-4 bg-gray-800 rounded w-2/3" />
-          <div className="h-64 bg-gray-800 rounded" />
+          <div className="h-8 bg-wow-panel rounded-sm w-1/3" />
+          <div className="h-4 bg-wow-panel rounded-sm w-2/3" />
+          <div className="h-64 bg-wow-panel rounded-sm" />
         </div>
       </div>
     );
@@ -224,8 +229,8 @@ export default function AddonDetailPage() {
   if (error || !addon) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-        <p className="text-red-400 text-lg font-medium">{error || "Addon not found"}</p>
-        <Link to="/" className="text-blue-400 hover:text-blue-300 mt-2 inline-block">
+        <p className="text-wow-danger text-lg font-wow-heading tracking-wider">{error || "Addon not found"}</p>
+        <Link to="/" className="text-wow-gold hover:text-wow-gold/80 mt-2 inline-block font-wow-heading tracking-wide">
           Back to browse
         </Link>
       </div>
@@ -236,86 +241,82 @@ export default function AddonDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-        <button
-          onClick={handleBack}
-          className="flex items-center gap-1 text-sm text-gray-400 hover:text-white mb-6 transition-colors"
-        >
+      <button
+        onClick={handleBack}
+        className="flex items-center gap-1 text-sm text-wow-text-dim hover:text-wow-gold mb-6 transition-colors font-wow-heading tracking-wide"
+      >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
         Back
       </button>
 
-      <div className="flex gap-6 mb-8">
-        <div className="w-24 h-24 shrink-0 rounded-xl overflow-hidden bg-gray-800">
-          {addon.logo?.url ? (
-            <img src={addon.logo.url} alt={addon.name} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-600">
-              <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </div>
-          )}
-        </div>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-white">{addon.name}</h1>
-          <p className="text-gray-400 mt-1">{addon.summary}</p>
-          <div className="flex items-center gap-3 mt-3">
-            <span className="text-sm text-gray-500">{downloadCount} downloads</span>
-            {addon.gamePopularityRank > 0 && (
-              <span className="text-sm text-gray-500">
-                #{addon.gamePopularityRank} popular
-              </span>
-            )}
-            {addon.links?.websiteUrl && (
-              <a
-                href={addon.links.websiteUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-blue-400 hover:text-blue-300"
-              >
-                CurseForge Page
-              </a>
-            )}
-            {installedInfo ? (
-              <span className="text-xs flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+      <WoWPanel className="p-6 mb-8">
+        <div className="flex gap-6">
+          <WoWIconFrame size="lg">
+            {addon.logo?.url ? (
+              <img src={addon.logo.url} alt={addon.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-wow-text-muted">
+                <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                Installed v{installedInfo.installedVersion || "?"}
-              </span>
-            ) : null}
-          </div>
-          <div className="flex flex-wrap gap-1.5 mt-3">
-            {addon.categories?.map((cat) => (
-              <span
-                key={cat.id}
-                className="text-xs px-2 py-0.5 rounded-full bg-gray-800 text-gray-300 border border-gray-700"
-              >
-                {cat.name}
-              </span>
-            ))}
-          </div>
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            {addon.authors?.map((author) => (
-              <span key={author.id} className="text-xs text-gray-500">
-                By {author.name}
-              </span>
-            ))}
+              </div>
+            )}
+          </WoWIconFrame>
+          <div className="flex-1">
+            <h1 className="text-2xl font-wow-heading tracking-wide text-wow-gold">{addon.name}</h1>
+            <p className="text-wow-text-dim mt-1">{addon.summary}</p>
+            <div className="flex items-center gap-4 mt-3">
+              <span className="text-sm text-wow-text-muted">{downloadCount} downloads</span>
+              {addon.gamePopularityRank > 0 && (
+                <span className="text-sm text-wow-text-muted">
+                  #<span className="text-wow-gold">{addon.gamePopularityRank}</span> popular
+                </span>
+              )}
+              {addon.links?.websiteUrl && (
+                <a
+                  href={addon.links.websiteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-wow-gold hover:text-wow-gold/80 font-wow-heading tracking-wide"
+                >
+                  CurseForge Page
+                </a>
+              )}
+              {installedInfo ? (
+                <span className="text-xs flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-wow-quality-purple/10 text-wow-quality-purple border border-wow-quality-purple/30">
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Installed v{installedInfo.installedVersion || "?"}
+                </span>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {addon.categories?.map((cat) => (
+                <WoWBadge key={cat.id} variant="info">{cat.name}</WoWBadge>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {addon.authors?.map((author) => (
+                <span key={author.id} className="text-xs text-wow-text-muted">
+                  By {author.name}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      </WoWPanel>
 
-      <div className="border-t border-gray-800 pt-6">
-
+      <WoWPanel className="p-6">
         {installError && (
-          <div className="mb-4 flex items-center gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
+          <div className="mb-4 flex items-center gap-2 text-sm text-wow-danger bg-wow-danger/10 border border-wow-danger/30 rounded-sm px-4 py-3">
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
             <span>{installError}</span>
-            <button onClick={() => setInstallError(null)} className="ml-auto text-red-400/60 hover:text-red-400">
+            <button onClick={() => setInstallError(null)} className="ml-auto text-wow-danger/60 hover:text-wow-danger">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -324,21 +325,22 @@ export default function AddonDetailPage() {
         )}
 
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white">Files</h2>
+          <h2 className="text-lg font-wow-heading tracking-wide text-wow-gold">Files</h2>
           {pagination && (
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-wow-text-muted">
               {pagination.totalCount.toLocaleString()} files
               {selectedVersion && !showingAll && " for this version"}
               {showingAll && " (showing all versions)"}
             </p>
           )}
         </div>
+
         <div className="space-y-2">
           {filesLoading ? (
             Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-4 animate-pulse">
-                <div className="h-4 bg-gray-700/50 rounded w-1/3 mb-2" />
-                <div className="h-3 bg-gray-700/30 rounded w-1/2" />
+              <div key={i} className="bg-wow-panel border border-wow-border-light rounded-sm p-4 animate-pulse">
+                <div className="h-4 bg-wow-panel-hover rounded w-1/3 mb-2" />
+                <div className="h-3 bg-wow-panel-hover/70 rounded w-1/2" />
               </div>
             ))
           ) : (
@@ -346,28 +348,22 @@ export default function AddonDetailPage() {
               {files.map((file) => (
                 <div
                   key={file.id}
-                  className="bg-gray-800/50 border border-gray-700/50 hover:border-gray-600 rounded-lg p-4 transition-colors"
+                  className="bg-wow-bg border border-wow-border-light hover:border-wow-border-gold/50 rounded-sm p-4 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-white">
+                        <span className="text-sm font-wow-heading tracking-wide text-wow-text">
                           {file.displayName}
                         </span>
                         {file.releaseType === 1 && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400">
-                            Release
-                          </span>
+                          <WoWBadge variant="release">Release</WoWBadge>
                         )}
                         {file.releaseType === 2 && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-400">
-                            Beta
-                          </span>
+                          <WoWBadge variant="beta">Beta</WoWBadge>
                         )}
                         {file.releaseType === 3 && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-400">
-                            Alpha
-                          </span>
+                          <WoWBadge variant="alpha">Alpha</WoWBadge>
                         )}
                       </div>
                       {file.gameVersions && file.gameVersions.length > 0 && (
@@ -375,10 +371,10 @@ export default function AddonDetailPage() {
                           {file.gameVersions.map((v) => (
                             <span
                               key={v}
-                              className={`text-[10px] px-1.5 py-0.5 rounded bg-gray-700/50 ${
+                              className={`text-[10px] px-1.5 py-0.5 rounded-sm ${
                                 v === selectedVersion
-                                  ? "text-blue-300 border border-blue-500/30"
-                                  : "text-gray-400"
+                                  ? "text-wow-gold bg-wow-border-gold/10 border border-wow-border-gold/30"
+                                  : "text-wow-text-muted bg-wow-panel"
                               }`}
                             >
                               {v}
@@ -386,7 +382,7 @@ export default function AddonDetailPage() {
                           ))}
                         </div>
                       )}
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-wow-text-muted mt-1">
                         {new Date(file.fileDate).toLocaleDateString()} &middot;{" "}
                         {(file.fileLength / 1024).toFixed(0)} KB
                       </p>
@@ -394,52 +390,46 @@ export default function AddonDetailPage() {
                     <div className="flex items-center gap-2 shrink-0">
                       {installing ? (
                         <div className="w-32">
-                          <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                          <div className="h-2 bg-wow-panel rounded-sm overflow-hidden border border-wow-border-gold/30 relative">
                             <div
-                              className="h-full bg-blue-500 rounded-full transition-all duration-300"
+                              className="absolute inset-0 bg-gradient-to-r from-wow-border-gold to-wow-gold transition-all duration-300"
                               style={{ width: `${installProgress}%` }}
                             />
                           </div>
-                          <span className="text-[10px] text-gray-400 mt-0.5 block text-right">{installProgress}%</span>
+                          <span className="text-[10px] text-wow-text-muted mt-0.5 block text-right font-wow-heading">
+                            {installProgress}%
+                          </span>
                         </div>
                       ) : installDone ? (
-                        <span className="px-3 py-1.5 text-xs rounded-lg bg-gray-600/30 text-gray-400 border border-gray-600/30 cursor-default select-none">
-                          Installed ✓
+                        <span className="px-3 py-1.5 text-xs rounded-sm bg-wow-quality-purple/10 text-wow-quality-purple border border-wow-quality-purple/30 cursor-default select-none font-wow-heading tracking-wide">
+                          Installed
                         </span>
                       ) : (installedInfo && installedInfo.installedFileId === file.id) ? (
-                        <button
-                          onClick={handleUninstall}
-                          className="px-3 py-1.5 text-xs rounded-lg bg-red-600/20 text-red-400 border border-red-600/30 hover:bg-red-600/30 transition-colors"
-                        >
+                        <WoWButton variant="danger" onClick={handleUninstall}>
                           Uninstall
-                        </button>
+                        </WoWButton>
                       ) : (
-                        <button
-                          onClick={() => handleInstallFile(file)}
-                          className="px-3 py-1.5 text-xs rounded-lg bg-blue-600 text-white border border-blue-500 hover:bg-blue-500 transition-colors"
-                        >
-                          Install to AddOns
-                        </button>
+                        <WoWButton variant="primary" onClick={() => handleInstallFile(file)}>
+                          Install
+                        </WoWButton>
                       )}
                     </div>
                   </div>
                 </div>
               ))}
               {files.length === 0 && (
-                <p className="text-gray-500 text-sm text-center py-8">
-                  No files available
-                </p>
+                <p className="text-wow-text-muted text-sm text-center py-8">No files available</p>
               )}
             </>
           )}
         </div>
 
         {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-1 mt-6">
+          <div className="flex items-center justify-center gap-1 mt-6 pt-4 border-t border-wow-border-light">
             <button
               onClick={() => setCurrentPage(currentPage - 1)}
               disabled={currentPage === 0}
-              className="px-2.5 py-1.5 text-xs bg-gray-800 border border-gray-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:border-gray-600 transition-colors"
+              className="px-2.5 py-1.5 text-xs bg-wow-panel border border-wow-border-light rounded-sm disabled:opacity-40 disabled:cursor-not-allowed hover:border-wow-border-gold transition-colors text-wow-text-dim hover:text-wow-text"
             >
               Prev
             </button>
@@ -447,10 +437,10 @@ export default function AddonDetailPage() {
               <button
                 key={p}
                 onClick={() => setCurrentPage(p)}
-                className={`w-8 h-8 text-xs rounded-lg border transition-colors ${
+                className={`w-8 h-8 text-xs rounded-sm border transition-colors ${
                   p === currentPage
-                    ? "bg-blue-600 text-white border-blue-500"
-                    : "bg-gray-800 text-gray-300 border-gray-700 hover:border-gray-600"
+                    ? "bg-wow-gold text-wow-bg border-wow-gold font-wow-heading"
+                    : "bg-wow-panel text-wow-text-dim border-wow-border-light hover:border-wow-border-gold"
                 }`}
               >
                 {p + 1}
@@ -459,31 +449,31 @@ export default function AddonDetailPage() {
             <button
               onClick={() => setCurrentPage(currentPage + 1)}
               disabled={currentPage >= totalPages - 1}
-              className="px-2.5 py-1.5 text-xs bg-gray-800 border border-gray-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:border-gray-600 transition-colors"
+              className="px-2.5 py-1.5 text-xs bg-wow-panel border border-wow-border-light rounded-sm disabled:opacity-40 disabled:cursor-not-allowed hover:border-wow-border-gold transition-colors text-wow-text-dim hover:text-wow-text"
             >
               Next
             </button>
           </div>
         )}
-      </div>
 
-      <div className="border-t border-gray-800 pt-6 mt-6">
-        <h2 className="text-lg font-semibold text-white mb-4">Description</h2>
+        <WoWDivider className="my-6" />
+
+        <h2 className="text-lg font-wow-heading tracking-wide text-wow-gold mb-4">Description</h2>
         {descriptionLoading ? (
           <div className="animate-pulse space-y-2">
-            <div className="h-3 bg-gray-800 rounded w-3/4" />
-            <div className="h-3 bg-gray-800 rounded w-1/2" />
-            <div className="h-3 bg-gray-800 rounded w-5/6" />
+            <div className="h-3 bg-wow-panel rounded w-3/4" />
+            <div className="h-3 bg-wow-panel rounded w-1/2" />
+            <div className="h-3 bg-wow-panel rounded w-5/6" />
           </div>
         ) : description ? (
           <div
-            className="prose prose-invert prose-sm max-w-none text-gray-300 [&_a]:text-blue-400 [&_a:hover]:text-blue-300 [&_img]:rounded-lg [&_img]:max-w-full [&_h1]:text-lg [&_h1]:font-bold [&_h1]:text-white [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-white [&_h3]:text-sm [&_h3]:font-medium [&_h3]:text-white [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:text-gray-300 [&_p]:text-gray-300 [&_blockquote]:border-l-4 [&_blockquote]:border-gray-600 [&_blockquote]:pl-4 [&_blockquote]:text-gray-400 [&_pre]:bg-gray-800 [&_pre]:rounded-lg [&_pre]:p-4 [&_pre]:overflow-x-auto [&_code]:text-xs [&_code]:bg-gray-800 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_table]:w-full [&_th]:text-left [&_th]:text-gray-300 [&_th]:font-medium [&_th]:px-3 [&_th]:py-2 [&_td]:px-3 [&_td]:py-2 [&_td]:text-gray-400 [&_tr]:border-b [&_tr]:border-gray-700]"
+            className="prose prose-invert prose-sm max-w-none [&_*]:text-wow-text-dim [&_a]:text-wow-gold [&_a:hover]:text-wow-gold/80 [&_img]:rounded-sm [&_img]:max-w-full [&_h1]:text-lg [&_h1]:font-wow-heading [&_h1]:tracking-wide [&_h1]:text-wow-gold [&_h2]:text-base [&_h2]:font-wow-heading [&_h2]:tracking-wide [&_h2]:text-wow-gold [&_h3]:text-sm [&_h3]:font-medium [&_h3]:text-wow-text [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:text-wow-text-dim [&_p]:text-wow-text-dim [&_blockquote]:border-l-4 [&_blockquote]:border-wow-border-gold/40 [&_blockquote]:pl-4 [&_blockquote]:text-wow-text-muted [&_pre]:bg-wow-panel [&_pre]:rounded-sm [&_pre]:p-4 [&_pre]:overflow-x-auto [&_pre]:border [&_pre]:border-wow-border-light [&_code]:text-xs [&_code]:bg-wow-panel [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-sm [&_table]:w-full [&_th]:text-left [&_th]:text-wow-text [&_th]:font-wow-heading [&_th]:px-3 [&_th]:py-2 [&_td]:px-3 [&_td]:py-2 [&_td]:text-wow-text-dim [&_tr]:border-b [&_tr]:border-wow-border-light]"
             dangerouslySetInnerHTML={{ __html: description }}
           />
         ) : (
-          <p className="text-sm text-gray-500">No description available.</p>
+          <p className="text-sm text-wow-text-muted">No description available.</p>
         )}
-      </div>
+      </WoWPanel>
     </div>
   );
 }

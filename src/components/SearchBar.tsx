@@ -15,7 +15,7 @@ export default function SearchBar({ value, onChange, onSearch }: SearchBarProps)
     >
       <div className="relative">
         <svg
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-wow-text-muted"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -32,7 +32,7 @@ export default function SearchBar({ value, onChange, onSearch }: SearchBarProps)
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="Search addons..."
-          className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+          className="w-full pl-10 pr-4 py-2 bg-wow-panel border border-wow-border-light rounded-sm text-wow-text text-sm placeholder-wow-text-muted focus:outline-none focus:border-wow-border-gold focus:shadow-[0_0_6px_rgba(161,98,7,0.15)] transition-all"
         />
       </div>
     </form>

@@ -1,1 +1,46 @@
 @import "tailwindcss";
+
+@theme {
+  --color-wow-bg: #0c0a09;
+  --color-wow-panel: #1c1917;
+  --color-wow-panel-hover: #292524;
+  --color-wow-border: #292524;
+  --color-wow-border-light: #3f3a36;
+  --color-wow-border-gold: #a16207;
+  --color-wow-border-gold-bright: #f59e0b;
+  --color-wow-gold: #fbbf24;
+  --color-wow-gold-dim: #d97706;
+  --color-wow-text: #faf6f0;
+  --color-wow-text-dim: #a8a29e;
+  --color-wow-text-muted: #78716c;
+  --color-wow-quality-green: #1eff00;
+  --color-wow-quality-blue: #0070dd;
+  --color-wow-quality-purple: #a335ee;
+  --color-wow-quality-orange: #ff8000;
+  --color-wow-danger: #c41e3a;
+  --color-wow-divider: #3f3a36;
+  --font-wow-heading: 'IM Fell English', serif;
+  --font-wow-body: 'Inter', system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font-wow-body);
+  background-color: var(--color-wow-bg);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.015) 2px,
+      rgba(255, 255, 255, 0.015) 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 4px,
+      rgba(255, 255, 255, 0.007) 4px,
+      rgba(255, 255, 255, 0.007) 8px
+    );
+  color: var(--color-wow-text);
+  min-height: 100vh;
+}
