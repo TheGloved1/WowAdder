@@ -10,7 +10,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -18,7 +18,9 @@ jobs:
         uses: oven-sh/setup-bun@v2
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
 
       - name: Install WiX (for MSI bundling)
         run: dotnet tool install --global wix --version 4.0.5
@@ -38,7 +40,7 @@ jobs:
         run: bun install
 
       - name: Setup cargo cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         continue-on-error: true
         with:
           path: |
@@ -72,7 +74,7 @@ jobs:
         run: bash scripts/generate-updater-json.sh
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             src-tauri/target/release/bundle/msi/*.msi
