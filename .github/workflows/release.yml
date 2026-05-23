@@ -44,6 +44,19 @@ jobs:
         shell: bash
         run: echo "VITE_CURSEFORGE_API_KEY=${{ secrets.CURSEFORGE_API_KEY }}" > .env
 
+      - name: Setup cargo cache
+        uses: actions/cache@v3
+        continue-on-error: true
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            src-tauri/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
       - name: Build Tauri app
         run: bun tauri build
         env:
