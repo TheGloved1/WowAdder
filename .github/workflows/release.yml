@@ -37,13 +37,6 @@ jobs:
       - name: Install frontend dependencies
         run: bun install
 
-      - name: Sync version to Cargo.toml and tauri.conf.json
-        run: bun scripts/sync-version.js
-
-      - name: Inject CurseForge API key
-        shell: bash
-        run: echo "VITE_CURSEFORGE_API_KEY=${{ secrets.CURSEFORGE_API_KEY }}" > .env
-
       - name: Setup cargo cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -51,6 +44,13 @@ jobs:
           cache-on-failure: true
           cache-bin: false
           cache-all-crates: true
+
+      - name: Sync version to Cargo.toml and tauri.conf.json
+        run: bun scripts/sync-version.js
+
+      - name: Inject CurseForge API key
+        shell: bash
+        run: echo "VITE_CURSEFORGE_API_KEY=${{ secrets.CURSEFORGE_API_KEY }}" > .env
 
       - name: Build Tauri app
         run: bun tauri build
