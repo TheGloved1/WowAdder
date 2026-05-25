@@ -26,8 +26,12 @@ reqwest = { version = "0.12", features = ["blocking"] }
 uuid = { version = "1", features = ["v4"] }
 dirs = "6"
 
+[profile.dev]
+incremental = true # Compile your binary in smaller steps.
+
 [profile.release]
-strip = "symbols"
-codegen-units = 256
-lto = false
+strip = true
+lto = true
+opt-level = "3" # Optimize for speed.
+panic = "abort" # Higher performance by disabling panic handlers.
 
