@@ -1,5 +1,16 @@
 # Changelog
 
+
+## [0.3.6] - 2026-05-25
+
+### Added
+
+- **scripts**: add automatic changelog generation to release script
+
+### Changed
+
+- **changelog**: remove redundant blank lines
+
 ## [0.3.5] - 2026-05-25
 
 ### Fixed
