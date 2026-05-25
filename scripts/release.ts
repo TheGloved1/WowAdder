@@ -156,9 +156,12 @@ Examples:
 
     let lastTag = "";
     try {
-      lastTag = execSync('git tag --list "v*" --sort=-creatordate', {
-        encoding: "utf-8",
-      }).trim().split("\n")[0] ?? "";
+      lastTag =
+        execSync('git tag --list "v*" --sort=-creatordate', {
+          encoding: "utf-8",
+        })
+          .trim()
+          .split("\n")[0] ?? "";
     } catch {
       // no prior tags
     }
@@ -174,6 +177,7 @@ Examples:
     const added: string[] = [];
     const fixed: string[] = [];
     const changed: string[] = [];
+    const other: string[] = [];
 
     const pattern =
       /^(feat|fix|refactor|perf|build|style|docs|test|chore)(\(.*?\))?!?:\s(.+)$/;
@@ -195,6 +199,9 @@ Examples:
         case "style":
           changed.push(entry);
           break;
+        default:
+          other.push(entry);
+          break;
       }
     }
 
@@ -211,6 +218,10 @@ Examples:
     }
     if (changed.length) {
       entry += "\n\n### Changed\n\n" + changed.map((e) => `- ${e}`).join("\n");
+      hasContent = true;
+    }
+    if (other.length) {
+      entry += "\n\n### Other\n\n" + other.map((e) => `- ${e}`).join("\n");
       hasContent = true;
     }
     if (!hasContent) {
@@ -289,20 +300,25 @@ Edit CHANGELOG.md manually, then run:
   ok("Tagged");
 
   // ---------------------------------------------------------------------------
+  // Push to remote
+  // ---------------------------------------------------------------------------
+
+  step(`Pushing to origin/${branch}`);
+  execSync(`git push origin ${branch} --tags`, { encoding: "utf-8" });
+  ok("Pushed");
+
+  // ---------------------------------------------------------------------------
   // Done
   // ---------------------------------------------------------------------------
 
   console.log(`\n${GREEN}========================================${NC}`);
   console.log(`${GREEN}  Released v${next}${NC}`);
   console.log(`${GREEN}========================================${NC}\n`);
-  console.log("Next steps:");
-  console.log("  1. Review the commit:  git show HEAD");
-  console.log("  2. Push to trigger CI: git push origin main --tags\n");
-  console.log(
-    "  CI will build cross-platform binaries and create a draft GitHub release.\n",
-  );
+  console.log("Next step:");
+  console.log("  CI will build and create a GitHub release.\n");
   console.log(`To undo this release:`);
   console.log(`  git tag -d v${next} && git reset --soft HEAD~1`);
+  console.log(`  git push origin :refs/tags/v${next}`);
 }
 
 main()
