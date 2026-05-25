@@ -27,6 +27,77 @@ function fail(msg: string): never {
   process.exit(1);
 }
 
+function generateChangelog(next: string): { changelogEntry: string; releaseEntry: string } {
+  execSync("git fetch --tags --force", { stdio: "ignore" });
+
+  let lastTag = "";
+  try {
+    lastTag =
+      execSync('git tag --list "v*" --sort=-creatordate', {
+        encoding: "utf-8",
+      })
+        .trim()
+        .split("\n")[0] ?? "";
+  } catch {
+    // no prior tags
+  }
+
+  const range = lastTag ? `${lastTag}..HEAD` : "HEAD";
+  const today = new Date().toISOString().slice(0, 10);
+
+  const log = execSync(`git log ${range} --pretty=format:"%s" --reverse`, {
+    encoding: "utf-8",
+  });
+  const lines = log.split("\n").filter(Boolean);
+
+  const added: string[] = [];
+  const fixed: string[] = [];
+  const changed: string[] = [];
+  const other: string[] = [];
+
+  const pattern =
+    /^(feat|fix|refactor|perf|build|style|docs|test|chore)(\(.*?\))?!?:\s(.+)$/;
+
+  for (const line of lines) {
+    const m = line.match(pattern);
+    if (!m) continue;
+    const [, type, scope, msg] = m;
+    const entry = scope ? `**${scope.slice(1, -1)}**: ${msg}` : msg;
+    switch (type) {
+      case "feat":
+        added.push(entry);
+        break;
+      case "fix":
+        fixed.push(entry);
+        break;
+      case "refactor":
+      case "perf":
+      case "style":
+        changed.push(entry);
+        break;
+      default:
+        other.push(entry);
+        break;
+    }
+  }
+
+  let body = "";
+  if (added.length)
+    body += "\n\n### Added\n\n" + added.map((e) => `- ${e}`).join("\n");
+  if (fixed.length)
+    body += "\n\n### Fixed\n\n" + fixed.map((e) => `- ${e}`).join("\n");
+  if (changed.length)
+    body += "\n\n### Changed\n\n" + changed.map((e) => `- ${e}`).join("\n");
+  if (other.length)
+    body += "\n\n### Other\n\n" + other.map((e) => `- ${e}`).join("\n");
+  if (!body) body = "\n\nMaintenance release.";
+
+  const changelogEntry = `## [${next}] - ${today}${body}`;
+  const releaseEntry = `## ${today}${body}`;
+
+  return { changelogEntry, releaseEntry };
+}
+
 async function main() {
   // ---------------------------------------------------------------------------
   // Parse argument
@@ -34,16 +105,19 @@ async function main() {
 
   const args = process.argv.slice(2);
   const skipChangelog = args.includes("--no-changelog");
-  const arg = args.find((a) => a !== "--no-changelog") ?? "";
-  if (!arg) {
+  const changelogOnly = args.includes("changelog");
+  const arg = args.find((a) => a !== "--no-changelog" && a !== "changelog") ?? "";
+  if (!arg && !changelogOnly) {
     console.log(`
-Usage: ./scripts/release.ts [major|minor|patch|x.y.z]
+Usage: ./scripts/release.ts [major|minor|patch|x.y.z|changelog]
 
 Examples:
-  ./scripts/release.ts patch   # 0.1.8 -> 0.1.9
-  ./scripts/release.ts minor   # 0.1.8 -> 0.2.0
-  ./scripts/release.ts major   # 0.1.8 -> 1.0.0
-  ./scripts/release.ts 0.2.0   # explicit version
+  ./scripts/release.ts patch      # 0.1.8 -> 0.1.9
+  ./scripts/release.ts minor      # 0.1.8 -> 0.2.0
+  ./scripts/release.ts major      # 0.1.8 -> 1.0.0
+  ./scripts/release.ts 0.2.0      # explicit version
+  ./scripts/release.ts changelog        # preview changelog for next release
+  ./scripts/release.ts changelog patch  # preview changelog with a patch bump
 `);
     process.exit(1);
   }
@@ -81,6 +155,8 @@ Examples:
     next = `${maj}.${min}.${pat + 1}`;
   } else if (/^\d+\.\d+\.\d+$/.test(arg)) {
     next = arg;
+  } else if (changelogOnly && !arg) {
+    next = current;
   } else {
     fail("Invalid version format. Use x.y.z (e.g., 1.2.3)");
   }
@@ -88,6 +164,21 @@ Examples:
   console.log(`${BLUE}Release${NC}`);
   console.log(`  current : ${DIM}${current}${NC}`);
   console.log(`  next    : ${GREEN}${next}${NC}\n`);
+
+  // ---------------------------------------------------------------------------
+  // Changelog-only mode — preview without making changes
+  // ---------------------------------------------------------------------------
+
+  if (changelogOnly) {
+    step("Generating changelog preview");
+    const { changelogEntry, releaseEntry } = generateChangelog(next);
+    console.log(`\n${BLUE}=== CHANGELOG.md entry ===${NC}\n`);
+    console.log(changelogEntry);
+    console.log(`\n${BLUE}=== Release body (changelogs/v${next}.md) ===${NC}\n`);
+    console.log(releaseEntry);
+    rl.close();
+    process.exit(0);
+  }
 
   // ---------------------------------------------------------------------------
   // Pre-flight checks
@@ -150,83 +241,7 @@ Examples:
     ok("SKIP — changelog generation disabled");
   } else {
     step("Generating changelog");
-
-    // Fetch all tags from remote so we can find the last release tag
-    execSync("git fetch --tags --force", { stdio: "ignore" });
-
-    let lastTag = "";
-    try {
-      lastTag =
-        execSync('git tag --list "v*" --sort=-creatordate', {
-          encoding: "utf-8",
-        })
-          .trim()
-          .split("\n")[0] ?? "";
-    } catch {
-      // no prior tags
-    }
-
-    const range = lastTag ? `${lastTag}..HEAD` : "HEAD";
-    const today = new Date().toISOString().slice(0, 10);
-
-    const log = execSync(`git log ${range} --pretty=format:"%s" --reverse`, {
-      encoding: "utf-8",
-    });
-    const lines = log.split("\n").filter(Boolean);
-
-    const added: string[] = [];
-    const fixed: string[] = [];
-    const changed: string[] = [];
-    const other: string[] = [];
-
-    const pattern =
-      /^(feat|fix|refactor|perf|build|style|docs|test|chore)(\(.*?\))?!?:\s(.+)$/;
-
-    for (const line of lines) {
-      const m = line.match(pattern);
-      if (!m) continue;
-      const [, type, scope, msg] = m;
-      const entry = scope ? `**${scope.slice(1, -1)}**: ${msg}` : msg;
-      switch (type) {
-        case "feat":
-          added.push(entry);
-          break;
-        case "fix":
-          fixed.push(entry);
-          break;
-        case "refactor":
-        case "perf":
-        case "style":
-          changed.push(entry);
-          break;
-        default:
-          other.push(entry);
-          break;
-      }
-    }
-
-    let entry = `## ${today}`;
-    let hasContent = false;
-
-    if (added.length) {
-      entry += "\n\n### Added\n\n" + added.map((e) => `- ${e}`).join("\n");
-      hasContent = true;
-    }
-    if (fixed.length) {
-      entry += "\n\n### Fixed\n\n" + fixed.map((e) => `- ${e}`).join("\n");
-      hasContent = true;
-    }
-    if (changed.length) {
-      entry += "\n\n### Changed\n\n" + changed.map((e) => `- ${e}`).join("\n");
-      hasContent = true;
-    }
-    if (other.length) {
-      entry += "\n\n### Other\n\n" + other.map((e) => `- ${e}`).join("\n");
-      hasContent = true;
-    }
-    if (!hasContent) {
-      entry += "\n\nMaintenance release.";
-    }
+    const { changelogEntry, releaseEntry } = generateChangelog(next);
 
     // Insert into CHANGELOG.md
     const changelogPath = "CHANGELOG.md";
@@ -237,16 +252,18 @@ Examples:
       if (idx !== -1) {
         const before = changelog.slice(0, idx);
         const after = changelog.slice(idx);
-        writeFileSync(changelogPath, before + "\n\n" + entry + "\n" + after);
+        writeFileSync(
+          changelogPath,
+          before + "\n\n" + changelogEntry + "\n" + after,
+        );
       } else {
         writeFileSync(
           changelogPath,
-          changelog.trimEnd() + "\n\n" + entry + "\n",
+          changelog.trimEnd() + "\n\n" + changelogEntry + "\n",
         );
       }
     } else {
-      // Create CHANGELOG.md if it doesn't exist
-      writeFileSync(changelogPath, "# Changelog\n\n" + entry + "\n");
+      writeFileSync(changelogPath, "# Changelog\n\n" + changelogEntry + "\n");
     }
     ok("CHANGELOG.md");
 
@@ -255,12 +272,12 @@ Examples:
     if (!existsSync(changelogsDir)) {
       mkdirSync(changelogsDir, { recursive: true });
     }
-    writeFileSync(`${changelogsDir}/v${next}.md`, entry);
+    writeFileSync(`${changelogsDir}/v${next}.md`, releaseEntry);
     ok(`${changelogsDir}/v${next}.md`);
 
     // Preview
     console.log(`\n${DIM}--- changelog preview ---${NC}`);
-    console.log(entry);
+    console.log(changelogEntry);
     console.log(`${DIM}--- end preview ---${NC}\n`);
 
     const looksGood = await ask("Does the changelog look good? (Y/n) ");
