@@ -270,6 +270,7 @@ Edit CHANGELOG.md manually, then run:
   const filesToAdd = [
     "package.json",
     "src-tauri/Cargo.toml",
+    "src-tauri/Cargo.lock",
     "src-tauri/tauri.conf.json",
     ...(skipChangelog ? [] : ["CHANGELOG.md", `changelogs/v${next}.md`]),
   ];
