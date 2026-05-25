@@ -1,3 +1,13 @@
+## [0.3.17] - 2026-05-25
+
+### Added
+
+- **backend**: add open_folder command and replace openPath with invoke
+
+### Other
+
+- update README with current feature set
+
 ## [0.3.16] - 2026-05-25
 
 ### Other
