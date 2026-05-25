@@ -79,6 +79,7 @@ jobs:
           files: |
             src-tauri/target/release/bundle/msi/*.msi
             updater.json
+          body_path: changelogs/${{ github.ref_name }}.md
           generate_release_notes: true
           draft: false
           prerelease: false

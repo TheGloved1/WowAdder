@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { execSync } from "node:child_process";
 import * as readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
@@ -235,6 +235,14 @@ Examples:
     }
     ok("CHANGELOG.md");
 
+    // Write tag-specific changelog for GitHub release body
+    const changelogsDir = "changelogs";
+    if (!existsSync(changelogsDir)) {
+      mkdirSync(changelogsDir, { recursive: true });
+    }
+    writeFileSync(`${changelogsDir}/v${next}.md`, entry);
+    ok(`${changelogsDir}/v${next}.md`);
+
     // Preview
     console.log(`\n${DIM}--- changelog preview ---${NC}`);
     console.log(entry);
@@ -261,7 +269,7 @@ Edit CHANGELOG.md manually, then run:
 
   const filesToAdd = [
     "package.json",
-    ...(skipChangelog ? [] : ["CHANGELOG.md"]),
+    ...(skipChangelog ? [] : ["CHANGELOG.md", `changelogs/v${next}.md`]),
   ];
   execSync(`git add ${filesToAdd.join(" ")}`, { encoding: "utf-8" });
   execSync(`git commit -m "chore: release v${next}"`, { encoding: "utf-8" });
