@@ -42,6 +42,7 @@
     "curseforge-v2": "^1.5.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^7.15.1"
   },
   "devDependencies": {

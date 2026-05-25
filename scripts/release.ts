@@ -1,20 +1,20 @@
 #!/usr/bin/env bun
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { execSync } from "node:child_process";
-import * as readline from "node:readline/promises";
-import { stdin as input, stdout as output } from "node:process";
+import { execSync } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { stdin as input, stdout as output } from 'node:process';
+import * as readline from 'node:readline/promises';
 
 const rl = readline.createInterface({ input, output });
 const ask = (q: string) => rl.question(q);
-const checkYesOrNo = (ans: string) => ans.toLowerCase() === "n";
+const checkYesOrNo = (ans: string) => ans.toLowerCase() === 'n';
 
-const RED = "\x1b[0;31m";
-const GREEN = "\x1b[0;32m";
-const YELLOW = "\x1b[1;33m";
-const BLUE = "\x1b[0;34m";
-const DIM = "\x1b[2m";
-const NC = "\x1b[0m";
+const RED = '\x1b[0;31m';
+const GREEN = '\x1b[0;32m';
+const YELLOW = '\x1b[1;33m';
+const BLUE = '\x1b[0;34m';
+const DIM = '\x1b[2m';
+const NC = '\x1b[0m';
 
 function step(msg: string) {
   console.log(`\n${BLUE}==>${NC} ${msg}`);
@@ -28,35 +28,34 @@ function fail(msg: string): never {
 }
 
 function generateChangelog(next: string): { changelogEntry: string; releaseEntry: string } {
-  execSync("git fetch --tags --force", { stdio: "ignore" });
+  execSync('git fetch --tags --force', { stdio: 'ignore' });
 
-  let lastTag = "";
+  let lastTag = '';
   try {
     lastTag =
       execSync('git tag --list "v*" --sort=-creatordate', {
-        encoding: "utf-8",
+        encoding: 'utf-8',
       })
         .trim()
-        .split("\n")[0] ?? "";
+        .split('\n')[0] ?? '';
   } catch {
     // no prior tags
   }
 
-  const range = lastTag ? `${lastTag}..HEAD` : "HEAD";
+  const range = lastTag ? `${lastTag}..HEAD` : 'HEAD';
   const today = new Date().toISOString().slice(0, 10);
 
   const log = execSync(`git log ${range} --pretty=format:"%s" --reverse`, {
-    encoding: "utf-8",
+    encoding: 'utf-8',
   });
-  const lines = log.split("\n").filter(Boolean);
+  const lines = log.split('\n').filter(Boolean);
 
   const added: string[] = [];
   const fixed: string[] = [];
   const changed: string[] = [];
   const other: string[] = [];
 
-  const pattern =
-    /^(feat|fix|refactor|perf|build|style|docs|test|chore)(\(.*?\))?!?:\s(.+)$/;
+  const pattern = /^(feat|fix|refactor|perf|build|style|docs|test|chore)(\(.*?\))?!?:\s(.+)$/;
 
   for (const line of lines) {
     const m = line.match(pattern);
@@ -64,15 +63,15 @@ function generateChangelog(next: string): { changelogEntry: string; releaseEntry
     const [, type, scope, msg] = m;
     const entry = scope ? `**${scope.slice(1, -1)}**: ${msg}` : msg;
     switch (type) {
-      case "feat":
+      case 'feat':
         added.push(entry);
         break;
-      case "fix":
+      case 'fix':
         fixed.push(entry);
         break;
-      case "refactor":
-      case "perf":
-      case "style":
+      case 'refactor':
+      case 'perf':
+      case 'style':
         changed.push(entry);
         break;
       default:
@@ -81,16 +80,12 @@ function generateChangelog(next: string): { changelogEntry: string; releaseEntry
     }
   }
 
-  let body = "";
-  if (added.length)
-    body += "\n\n### Added\n\n" + added.map((e) => `- ${e}`).join("\n");
-  if (fixed.length)
-    body += "\n\n### Fixed\n\n" + fixed.map((e) => `- ${e}`).join("\n");
-  if (changed.length)
-    body += "\n\n### Changed\n\n" + changed.map((e) => `- ${e}`).join("\n");
-  if (other.length)
-    body += "\n\n### Other\n\n" + other.map((e) => `- ${e}`).join("\n");
-  if (!body) body = "\n\nMaintenance release.";
+  let body = '';
+  if (added.length) body += '\n\n### Added\n\n' + added.map((e) => `- ${e}`).join('\n');
+  if (fixed.length) body += '\n\n### Fixed\n\n' + fixed.map((e) => `- ${e}`).join('\n');
+  if (changed.length) body += '\n\n### Changed\n\n' + changed.map((e) => `- ${e}`).join('\n');
+  if (other.length) body += '\n\n### Other\n\n' + other.map((e) => `- ${e}`).join('\n');
+  if (!body) body = '\n\nMaintenance release.';
 
   const changelogEntry = `## [${next}] - ${today}${body}`;
   const releaseEntry = `## ${today}${body}`;
@@ -104,9 +99,9 @@ async function main() {
   // ---------------------------------------------------------------------------
 
   const args = process.argv.slice(2);
-  const skipChangelog = args.includes("--no-changelog");
-  const changelogOnly = args.includes("changelog");
-  const arg = args.find((a) => a !== "--no-changelog" && a !== "changelog") ?? "";
+  const skipChangelog = args.includes('--no-changelog');
+  const changelogOnly = args.includes('changelog');
+  const arg = args.find((a) => a !== '--no-changelog' && a !== 'changelog') ?? '';
   if (!arg && !changelogOnly) {
     console.log(`
 Usage: ./scripts/release.ts [major|minor|patch|x.y.z|changelog]
@@ -126,12 +121,12 @@ Examples:
   // Check required tools
   // ---------------------------------------------------------------------------
 
-  for (const cmd of ["git"]) {
+  for (const cmd of ['git']) {
     try {
-      execSync(`where ${cmd}`, { stdio: "ignore" });
+      execSync(`where ${cmd}`, { stdio: 'ignore' });
     } catch {
       try {
-        execSync(`command -v ${cmd}`, { stdio: "ignore" });
+        execSync(`command -v ${cmd}`, { stdio: 'ignore' });
       } catch {
         fail(`Required tool not found: ${cmd}`);
       }
@@ -142,23 +137,23 @@ Examples:
   // Read current version
   // ---------------------------------------------------------------------------
 
-  const pkg = JSON.parse(readFileSync("package.json", "utf-8"));
+  const pkg = JSON.parse(readFileSync('package.json', 'utf-8'));
   const current = pkg.version as string;
-  const [maj, min, pat] = current.split(".").map(Number);
+  const [maj, min, pat] = current.split('.').map(Number);
 
   let next: string;
-  if (arg === "major") {
+  if (arg === 'major') {
     next = `${maj + 1}.0.0`;
-  } else if (arg === "minor") {
+  } else if (arg === 'minor') {
     next = `${maj}.${min + 1}.0`;
-  } else if (arg === "patch") {
+  } else if (arg === 'patch') {
     next = `${maj}.${min}.${pat + 1}`;
   } else if (/^\d+\.\d+\.\d+$/.test(arg)) {
     next = arg;
   } else if (changelogOnly && !arg) {
     next = current;
   } else {
-    fail("Invalid version format. Use x.y.z (e.g., 1.2.3)");
+    fail('Invalid version format. Use x.y.z (e.g., 1.2.3)');
   }
 
   console.log(`${BLUE}Release${NC}`);
@@ -170,7 +165,7 @@ Examples:
   // ---------------------------------------------------------------------------
 
   if (changelogOnly) {
-    step("Generating changelog preview");
+    step('Generating changelog preview');
     const { changelogEntry, releaseEntry } = generateChangelog(next);
     console.log(`\n${BLUE}=== CHANGELOG.md entry ===${NC}\n`);
     console.log(changelogEntry);
@@ -184,24 +179,22 @@ Examples:
   // Pre-flight checks
   // ---------------------------------------------------------------------------
 
-  step("Running pre-flight checks");
+  step('Running pre-flight checks');
 
-  const status = execSync("git status --porcelain", {
-    encoding: "utf-8",
+  const status = execSync('git status --porcelain', {
+    encoding: 'utf-8',
   }).trim();
-  if (status) fail("Uncommitted changes detected. Commit or stash them first.");
-  ok("Working tree clean");
+  if (status) fail('Uncommitted changes detected. Commit or stash them first.');
+  ok('Working tree clean');
 
-  const branch = execSync("git branch --show-current", {
-    encoding: "utf-8",
+  const branch = execSync('git branch --show-current', {
+    encoding: 'utf-8',
   }).trim();
-  if (branch !== "main") {
-    console.log(
-      `  ${YELLOW}warning${NC} You are on branch '${branch}', not 'main'.`,
-    );
-    const reply = await ask("  Continue anyway? (y/N) ");
-    if (reply.toLowerCase() !== "y") {
-      console.log("Aborted.");
+  if (branch !== 'main') {
+    console.log(`  ${YELLOW}warning${NC} You are on branch '${branch}', not 'main'.`);
+    const reply = await ask('  Continue anyway? (y/N) ');
+    if (reply.toLowerCase() !== 'y') {
+      console.log('Aborted.');
       process.exit(0);
     }
   } // end else: changelog generation
@@ -212,7 +205,7 @@ Examples:
 
   const proceed = await ask(`Proceed with release v${next}? (Y/n) `);
   if (checkYesOrNo(proceed)) {
-    console.log("Aborted.");
+    console.log('Aborted.');
     process.exit(0);
   }
 
@@ -220,17 +213,17 @@ Examples:
   // Bump versions
   // ---------------------------------------------------------------------------
 
-  step("Updating version numbers");
+  step('Updating version numbers');
 
   // package.json
   pkg.version = next;
-  writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
-  ok("package.json");
+  writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+  ok('package.json');
   try {
-    execSync("bun run sync-version", { stdio: "inherit" });
-    ok("Synced version to Cargo.toml and tauri.conf.json");
+    execSync('bun run sync-version', { stdio: 'inherit' });
+    ok('Synced version to Cargo.toml and tauri.conf.json');
   } catch (error) {
-    fail("Failed to sync version: " + error);
+    fail('Failed to sync version: ' + error);
   }
 
   // ---------------------------------------------------------------------------
@@ -238,37 +231,31 @@ Examples:
   // ---------------------------------------------------------------------------
 
   if (skipChangelog) {
-    ok("SKIP — changelog generation disabled");
+    ok('SKIP — changelog generation disabled');
   } else {
-    step("Generating changelog");
+    step('Generating changelog');
     const { changelogEntry, releaseEntry } = generateChangelog(next);
 
     // Insert into CHANGELOG.md
-    const changelogPath = "CHANGELOG.md";
+    const changelogPath = 'CHANGELOG.md';
     if (existsSync(changelogPath)) {
-      const changelog = readFileSync(changelogPath, "utf-8");
-      const marker = "\n## [";
+      const changelog = readFileSync(changelogPath, 'utf-8');
+      const marker = '\n## [';
       const idx = changelog.indexOf(marker);
       if (idx !== -1) {
         const before = changelog.slice(0, idx);
         const after = changelog.slice(idx);
-        writeFileSync(
-          changelogPath,
-          before + "\n\n" + changelogEntry + "\n" + after,
-        );
+        writeFileSync(changelogPath, before + '\n\n' + changelogEntry + '\n' + after);
       } else {
-        writeFileSync(
-          changelogPath,
-          changelog.trimEnd() + "\n\n" + changelogEntry + "\n",
-        );
+        writeFileSync(changelogPath, changelog.trimEnd() + '\n\n' + changelogEntry + '\n');
       }
     } else {
-      writeFileSync(changelogPath, "# Changelog\n\n" + changelogEntry + "\n");
+      writeFileSync(changelogPath, '\n\n' + changelogEntry + '\n');
     }
-    ok("CHANGELOG.md");
+    ok('CHANGELOG.md');
 
     // Write tag-specific changelog for GitHub release body
-    const changelogsDir = "changelogs";
+    const changelogsDir = 'changelogs';
     if (!existsSync(changelogsDir)) {
       mkdirSync(changelogsDir, { recursive: true });
     }
@@ -280,7 +267,7 @@ Examples:
     console.log(changelogEntry);
     console.log(`${DIM}--- end preview ---${NC}\n`);
 
-    const looksGood = await ask("Does the changelog look good? (Y/n) ");
+    const looksGood = await ask('Does the changelog look good? (Y/n) ');
     if (checkYesOrNo(looksGood)) {
       console.log(`
 Edit CHANGELOG.md manually, then run:
@@ -297,32 +284,32 @@ Edit CHANGELOG.md manually, then run:
   // Git commit and tag
   // ---------------------------------------------------------------------------
 
-  step("Creating release commit");
+  step('Creating release commit');
 
   const filesToAdd = [
-    "package.json",
-    "src-tauri/Cargo.toml",
-    "src-tauri/Cargo.lock",
-    "src-tauri/tauri.conf.json",
-    ...(skipChangelog ? [] : ["CHANGELOG.md", `changelogs/v${next}.md`]),
+    'package.json',
+    'src-tauri/Cargo.toml',
+    'src-tauri/Cargo.lock',
+    'src-tauri/tauri.conf.json',
+    ...(skipChangelog ? [] : ['CHANGELOG.md', `changelogs/v${next}.md`]),
   ];
-  execSync(`git add ${filesToAdd.join(" ")}`, { encoding: "utf-8" });
-  execSync(`git commit -m "chore: release v${next}"`, { encoding: "utf-8" });
-  ok("Committed");
+  execSync(`git add ${filesToAdd.join(' ')}`, { encoding: 'utf-8' });
+  execSync(`git commit -m "chore: release v${next}"`, { encoding: 'utf-8' });
+  ok('Committed');
 
   step(`Creating tag v${next}`);
   execSync(`git tag -a "v${next}" -m "Release v${next}"`, {
-    encoding: "utf-8",
+    encoding: 'utf-8',
   });
-  ok("Tagged");
+  ok('Tagged');
 
   // ---------------------------------------------------------------------------
   // Push to remote
   // ---------------------------------------------------------------------------
 
   step(`Pushing to origin/${branch}`);
-  execSync(`git push origin ${branch} --tags`, { encoding: "utf-8" });
-  ok("Pushed");
+  execSync(`git push origin ${branch} --tags`, { encoding: 'utf-8' });
+  ok('Pushed');
 
   // ---------------------------------------------------------------------------
   // Done
@@ -331,8 +318,8 @@ Edit CHANGELOG.md manually, then run:
   console.log(`\n${GREEN}========================================${NC}`);
   console.log(`${GREEN}  Released v${next}${NC}`);
   console.log(`${GREEN}========================================${NC}\n`);
-  console.log("Next step:");
-  console.log("  CI will build and create a GitHub release.\n");
+  console.log('Next step:');
+  console.log('  CI will build and create a GitHub release.\n');
   console.log(`To undo this release:`);
   console.log(`  git tag -d v${next} && git reset --soft HEAD~1`);
   console.log(`  git push origin :refs/tags/v${next}`);
@@ -340,7 +327,7 @@ Edit CHANGELOG.md manually, then run:
 
 main()
   .catch((err) => {
-    console.error("Release script failed:", err);
+    console.error('Release script failed:', err);
     process.exit(1);
   })
   .finally(() => rl.close());
