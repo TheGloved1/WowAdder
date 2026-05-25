@@ -13,6 +13,7 @@ export default function Layout() {
   const [updateVersion, setUpdateVersion] = useState("");
 
   useEffect(() => {
+    if (import.meta.env.DEV) return;
     let cancelled = false;
     const doUpdate = async () => {
       try {

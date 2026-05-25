@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "build:msi": "tauri build",
+    "sync-version": "bun run scripts/sync-version.js",
     "release": "bun scripts/release.ts --no-changelog",
     "release:changelog": "bun scripts/release.ts",
     "tags:push": "git push origin main --tags",
@@ -17,6 +18,7 @@
     "major:push": "bun run release major && bun run tags:push"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.100.14",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2.7.1",
     "@tauri-apps/plugin-fs": "^2.5.1",
