@@ -1,3 +1,9 @@
+## [0.3.8] - 2026-05-25
+
+### Fixed
+
+- **changelog**: correct release script to handle changelog entries with entries starting from top
+
 ## [0.3.7] - 2026-05-25
 
 ### Added
