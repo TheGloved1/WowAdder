@@ -248,8 +248,8 @@ Examples:
     console.log(entry);
     console.log(`${DIM}--- end preview ---${NC}\n`);
 
-    const looksGood = await ask("Does the changelog look good? (y/n) ");
-    if (looksGood.toLowerCase() !== "y") {
+    const looksGood = await ask("Does the changelog look good? (Y/n) ");
+    if (looksGood.toLowerCase() === "n") {
       console.log(`
 Edit CHANGELOG.md manually, then run:
   git add package.json CHANGELOG.md
