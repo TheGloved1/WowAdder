@@ -12,10 +12,6 @@
     "sync-version": "bun run scripts/sync-version.js",
     "release": "bun scripts/release.ts",
     "release:no-changelog": "bun scripts/release.ts --no-changelog",
-    "tags:push": "git push origin main --tags",
-    "patch:push": "bun run release patch && bun run tags:push",
-    "minor:push": "bun run release minor && bun run tags:push",
-    "major:push": "bun run release major && bun run tags:push",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\""
   },
   "prettier": {
