@@ -122,6 +122,15 @@ export default function SettingsPage() {
               CurseForge
             </a>
           </span>
+          <span className='bg-wow-border-light h-3 w-px' />
+          <a
+            href='https://github.com/TheGloved1/WowAdder'
+            target='_blank'
+            rel='noopener noreferrer'
+            className='text-wow-gold hover:underline'
+          >
+            GitHub
+          </a>
         </div>
 
         <div className='mt-6'>
