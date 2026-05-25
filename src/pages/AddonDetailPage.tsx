@@ -41,10 +41,9 @@ export default function AddonDetailPage() {
   const { data: description, isLoading: descriptionLoading } = useModDescription(modId);
 
   const [installedInfo, setInstalledInfo] = useState<ReturnType<typeof isAddonInstalled>>(undefined);
-  const [installing, setInstalling] = useState(false);
+  const [installingFileId, setInstallingFileId] = useState<number | null>(null);
   const [installProgress, setInstallProgress] = useState(0);
   const [installError, setInstallError] = useState<string | null>(null);
-  const [installDone, setInstallDone] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [showingAll, setShowingAll] = useState(false);
 
@@ -84,14 +83,14 @@ export default function AddonDetailPage() {
   }, [addon]);
 
   useEffect(() => {
-    if (!installing) return;
+    if (installingFileId === null) return;
     const unlisten = listen<number>('install-progress', (event) => {
       setInstallProgress(event.payload);
     });
     return () => {
       unlisten.then((fn) => fn());
     };
-  }, [installing]);
+  }, [installingFileId]);
 
   async function handleInstallFile(file: CF2File) {
     if (!addon) {
@@ -109,8 +108,7 @@ export default function AddonDetailPage() {
     });
     setInstallError(null);
     setInstallProgress(0);
-    setInstallDone(false);
-    setInstalling(true);
+    setInstallingFileId(file.id);
     try {
       console.log('[DEBUG] Checking addons folder...');
       let folder = await getAddonsFolder();
@@ -142,7 +140,6 @@ export default function AddonDetailPage() {
         file.fileName,
       );
       console.log('[DEBUG] installAddon completed successfully');
-      setInstallDone(true);
       maybeParmajawn();
       setInstalledInfo(isAddonInstalled(addon.id));
     } catch (err) {
@@ -154,21 +151,18 @@ export default function AddonDetailPage() {
       }
       setInstallError(msg);
     } finally {
-      console.log('[DEBUG] handleInstallFile finally block, setting installing=false');
-      setInstalling(false);
+      console.log('[DEBUG] handleInstallFile finally block, setting installingFileId=null');
+      setInstallingFileId(null);
     }
   }
 
   async function handleUninstall() {
     if (!addon) return;
-    setInstalling(true);
     try {
       await uninstallAddon(addon.id);
       setInstalledInfo(undefined);
     } catch (err) {
       console.error('Uninstall failed', err);
-    } finally {
-      setInstalling(false);
     }
   }
 
@@ -351,7 +345,7 @@ export default function AddonDetailPage() {
                       </p>
                     </div>
                     <div className='flex shrink-0 items-center gap-2'>
-                      {installing ?
+                      {installingFileId === file.id ?
                         <div className='w-32'>
                           <div className='bg-wow-panel border-wow-border-gold/30 relative h-2 overflow-hidden rounded-sm border'>
                             <div
@@ -363,10 +357,6 @@ export default function AddonDetailPage() {
                             {installProgress}%
                           </span>
                         </div>
-                      : installDone ?
-                        <span className='bg-wow-quality-purple/10 text-wow-quality-purple border-wow-quality-purple/30 font-wow-heading cursor-default rounded-sm border px-3 py-1.5 text-xs tracking-wide select-none'>
-                          Installed
-                        </span>
                       : installedInfo && installedInfo.installedFileId === file.id ?
                         <WoWButton variant='danger' onClick={handleUninstall}>
                           Uninstall
