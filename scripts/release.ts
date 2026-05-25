@@ -7,6 +7,7 @@ import { stdin as input, stdout as output } from "node:process";
 
 const rl = readline.createInterface({ input, output });
 const ask = (q: string) => rl.question(q);
+const checkYesOrNo = (ans: string) => ans.toLowerCase() === "n";
 
 const RED = "\x1b[0;31m";
 const GREEN = "\x1b[0;32m";
@@ -107,7 +108,7 @@ Examples:
     console.log(
       `  ${YELLOW}warning${NC} You are on branch '${branch}', not 'main'.`,
     );
-    const reply = await ask("  Continue anyway? (y/n) ");
+    const reply = await ask("  Continue anyway? (y/N) ");
     if (reply.toLowerCase() !== "y") {
       console.log("Aborted.");
       process.exit(0);
@@ -119,7 +120,7 @@ Examples:
   // ---------------------------------------------------------------------------
 
   const proceed = await ask(`Proceed with release v${next}? (Y/n) `);
-  if (proceed.toLowerCase() === "n") {
+  if (checkYesOrNo(proceed)) {
     console.log("Aborted.");
     process.exit(0);
   }
@@ -249,7 +250,7 @@ Examples:
     console.log(`${DIM}--- end preview ---${NC}\n`);
 
     const looksGood = await ask("Does the changelog look good? (Y/n) ");
-    if (looksGood.toLowerCase() === "n") {
+    if (checkYesOrNo(looksGood)) {
       console.log(`
 Edit CHANGELOG.md manually, then run:
   git add package.json CHANGELOG.md
