@@ -134,6 +134,12 @@ Examples:
   pkg.version = next;
   writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
   ok("package.json");
+  try {
+    execSync("bun run sync-version", { stdio: "inherit" });
+    ok("Synced version to Cargo.toml and tauri.conf.json");
+  } catch (error) {
+    fail("Failed to sync version: " + error);
+  }
 
   // ---------------------------------------------------------------------------
   // Generate changelog

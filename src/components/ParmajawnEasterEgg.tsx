@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import parmajawnSrc from "../assets/parmajawn.png";
+import { useEffect, useState } from 'react';
+import parmajawnSrc from '../assets/parmajawn.png';
 
 export default function ParmajawnEasterEgg() {
   const [visible, setVisible] = useState(false);
@@ -15,25 +15,25 @@ export default function ParmajawnEasterEgg() {
       if (Math.random() < 0.02) show();
     };
 
-    window.addEventListener("parmajawn", handler);
-    return () => window.removeEventListener("parmajawn", handler);
+    window.addEventListener('parmajawn', handler);
+    return () => window.removeEventListener('parmajawn', handler);
   }, [visible]);
 
   if (!visible) return null;
 
   return (
     <div
-      className="fixed inset-0 z-9999 flex items-center justify-center pointer-events-none"
+      className='pointer-events-none fixed inset-0 z-9999 flex items-center justify-center'
       style={{
-        animation: "parmajawnFadeIn 0.2s ease-out",
+        animation: 'parmajawnFadeIn 0.2s ease-out',
       }}
     >
       <img
         src={parmajawnSrc}
-        alt=""
-        className="max-w-[80vw] max-h-[85vh] object-contain rounded-sm shadow-2xl ring-2 ring-wow-gold/60"
+        alt=''
+        className='ring-wow-gold/60 max-h-[85vh] max-w-[80vw] rounded-sm object-contain shadow-2xl ring-2'
         style={{
-          animation: "parmajawnScaleIn 0.3s ease-out",
+          animation: 'parmajawnScaleIn 0.3s ease-out',
         }}
       />
       <style>{`

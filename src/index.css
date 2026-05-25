@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   --color-wow-bg: #0c0a09;
@@ -23,7 +23,7 @@
   --font-wow-body: 'Inter', system-ui, sans-serif;
 }
 
-[data-theme="emerald"] {
+[data-theme='emerald'] {
   --color-wow-bg: #0a0f0b;
   --color-wow-panel: #111a14;
   --color-wow-panel-hover: #1a2a20;
@@ -38,7 +38,7 @@
   --color-wow-text-muted: #4ade6b;
 }
 
-[data-theme="crimson"] {
+[data-theme='crimson'] {
   --color-wow-bg: #0f0808;
   --color-wow-panel: #1c0f0f;
   --color-wow-panel-hover: #2e1818;
@@ -53,7 +53,7 @@
   --color-wow-text-muted: #f87171;
 }
 
-[data-theme="nightelf"] {
+[data-theme='nightelf'] {
   --color-wow-bg: #0b0910;
   --color-wow-panel: #15112a;
   --color-wow-panel-hover: #211a3e;
@@ -68,7 +68,7 @@
   --color-wow-text-muted: #8b5cf6;
 }
 
-[data-theme="frost"] {
+[data-theme='frost'] {
   --color-wow-bg: #070b0f;
   --color-wow-panel: #0e1620;
   --color-wow-panel-hover: #162433;

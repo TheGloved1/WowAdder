@@ -1,18 +1,11 @@
-import { open } from "@tauri-apps/plugin-dialog";
-import {
-  readTextFile,
-  writeTextFile,
-  readDir,
-  remove,
-  exists,
-  mkdir,
-} from "@tauri-apps/plugin-fs";
-import { invoke } from "@tauri-apps/api/core";
-import { load } from "@tauri-apps/plugin-store";
-import type { CF2Addon } from "../types/curseforge";
-import { getMod, searchMods, getModFileDownloadUrl } from "./curseforge";
+import { invoke } from '@tauri-apps/api/core';
+import { open } from '@tauri-apps/plugin-dialog';
+import { exists, mkdir, readDir, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs';
+import { load } from '@tauri-apps/plugin-store';
+import type { CF2Addon } from '../types/curseforge';
+import { getMod, getModFileDownloadUrl, searchMods } from './curseforge';
 
-const STORE_FILE = "wowadder-config.json";
+const STORE_FILE = 'wowadder-config.json';
 
 let storePromise: ReturnType<typeof load> | null = null;
 function getStore() {
@@ -40,7 +33,7 @@ export interface AddonDb {
   installed: InstalledAddon[];
 }
 
-const DB_FILENAME = ".wowadder/db.json";
+const DB_FILENAME = '.wowadder/db.json';
 
 let cachedDb: AddonDb | null = null;
 let cachedInstallMap: Map<number, InstalledAddon> | null = null;
@@ -57,12 +50,12 @@ function dbPath(addonsFolder: string): string {
 export async function getAddonsFolder(): Promise<string | null> {
   if (cachedFolder) return cachedFolder;
   const store = await getStore();
-  let stored = await store.get<string>("addonsFolder");
+  let stored = await store.get<string>('addonsFolder');
   if (!stored) {
-    const legacy = localStorage.getItem("wowadder_addons_folder");
+    const legacy = localStorage.getItem('wowadder_addons_folder');
     if (legacy) {
-      await store.set("addonsFolder", legacy);
-      localStorage.removeItem("wowadder_addons_folder");
+      await store.set('addonsFolder', legacy);
+      localStorage.removeItem('wowadder_addons_folder');
       stored = legacy;
     }
   }
@@ -72,7 +65,7 @@ export async function getAddonsFolder(): Promise<string | null> {
 
 export async function setAddonsFolder(path: string): Promise<void> {
   const store = await getStore();
-  await store.set("addonsFolder", path);
+  await store.set('addonsFolder', path);
   cachedFolder = path;
   cachedDb = null;
   cachedInstallMap = null;
@@ -82,9 +75,9 @@ export async function pickAddonsFolder(): Promise<string | null> {
   const selected = await open({
     directory: true,
     multiple: false,
-    title: "Select your WoW AddOns folder",
+    title: 'Select your WoW AddOns folder',
   });
-  if (selected && typeof selected === "string") {
+  if (selected && typeof selected === 'string') {
     await setAddonsFolder(selected);
     return selected;
   }
@@ -100,10 +93,7 @@ async function ensureDbFile(addonsFolder: string): Promise<void> {
   }
   const fileExists = await exists(path);
   if (!fileExists) {
-    await writeTextFile(
-      path,
-      JSON.stringify(getDefaultDb(addonsFolder), null, 2),
-    );
+    await writeTextFile(path, JSON.stringify(getDefaultDb(addonsFolder), null, 2));
   }
 }
 
@@ -152,65 +142,76 @@ export async function installAddon(
   fileDownloadUrl?: string,
   fileName?: string,
 ): Promise<void> {
-  console.log("[DEBUG installAddon] Starting install:", { addonId: addon.id, fileId, folderName, version, fileDownloadUrl, fileName, hasDownloadUrl: !!fileDownloadUrl });
+  console.log('[DEBUG installAddon] Starting install:', {
+    addonId: addon.id,
+    fileId,
+    folderName,
+    version,
+    fileDownloadUrl,
+    fileName,
+    hasDownloadUrl: !!fileDownloadUrl,
+  });
 
   const folder = await getAddonsFolder();
-  console.log("[DEBUG installAddon] getAddonsFolder:", folder);
-  if (!folder) throw new Error("Addons folder not configured");
+  console.log('[DEBUG installAddon] getAddonsFolder:', folder);
+  if (!folder) throw new Error('Addons folder not configured');
 
   const db = await loadDb();
-  console.log("[DEBUG installAddon] loadDb result:", db ? { addonsFolder: db.addonsFolder, installedCount: db.installed.length } : null);
-  if (!db) throw new Error("Could not load database");
+  console.log(
+    '[DEBUG installAddon] loadDb result:',
+    db ? { addonsFolder: db.addonsFolder, installedCount: db.installed.length } : null,
+  );
+  if (!db) throw new Error('Could not load database');
 
   const existing = db.installed.find((a) => a.modId === addon.id);
-  console.log("[DEBUG installAddon] existing entry:", existing);
+  console.log('[DEBUG installAddon] existing entry:', existing);
   if (existing) {
-    console.log("[DEBUG installAddon] Upgrading existing installation:", existing);
+    console.log('[DEBUG installAddon] Upgrading existing installation:', existing);
     // Install new version first, then remove old folders (safe rollback)
   }
 
   let downloadUrl: string | undefined | null = fileDownloadUrl;
   if (!downloadUrl) {
-    console.log("[DEBUG installAddon] No fileDownloadUrl, trying CDN construct with fileName:", fileName);
+    console.log('[DEBUG installAddon] No fileDownloadUrl, trying CDN construct with fileName:', fileName);
     if (fileName) {
       const chunk1 = Math.floor(fileId / 1000);
       const chunk2 = fileId % 1000;
       downloadUrl = `https://edge.forgecdn.net/files/${chunk1}/${chunk2}/${fileName}`;
-      console.log("[DEBUG installAddon] Constructed CDN URL:", downloadUrl);
+      console.log('[DEBUG installAddon] Constructed CDN URL:', downloadUrl);
     }
   }
   if (!downloadUrl) {
-    console.log("[DEBUG installAddon] CDN construct failed, calling getModFileDownloadUrl API...");
+    console.log('[DEBUG installAddon] CDN construct failed, calling getModFileDownloadUrl API...');
     try {
       downloadUrl = await getModFileDownloadUrl(addon.id, fileId);
-      console.log("[DEBUG installAddon] getModFileDownloadUrl returned:", downloadUrl);
+      console.log('[DEBUG installAddon] getModFileDownloadUrl returned:', downloadUrl);
     } catch (apiErr) {
-      console.log("[DEBUG installAddon] getModFileDownloadUrl threw:", apiErr);
+      console.log('[DEBUG installAddon] getModFileDownloadUrl threw:', apiErr);
     }
   }
   if (!downloadUrl) {
     throw new Error(`Could not get download URL for file ${fileId} (addon ${addon.id}).`);
   }
-  console.log("[DEBUG installAddon] Using downloadUrl:", downloadUrl);
+  console.log('[DEBUG installAddon] Using downloadUrl:', downloadUrl);
 
   let entries: string[] = [folderName];
   console.log("[DEBUG installAddon] Calling invoke('install_addon')...");
   try {
-    const result = await invoke<string>("install_addon", {
+    const result = await invoke<string>('install_addon', {
       downloadUrl,
       targetDir: folder,
       folderName,
     });
-    console.log("[DEBUG installAddon] install_addon invoke succeeded, result:", result);
+    console.log('[DEBUG installAddon] install_addon invoke succeeded, result:', result);
     const parsed = JSON.parse(result);
     if (parsed.entries && Array.isArray(parsed.entries) && parsed.entries.length > 0) {
       entries = parsed.entries;
     }
   } catch (invokeErr) {
-    console.log("[DEBUG installAddon] install_addon invoke FAILED:", invokeErr);
+    console.log('[DEBUG installAddon] install_addon invoke FAILED:', invokeErr);
     if (invokeErr instanceof Error) {
-      console.log("[DEBUG installAddon] invoke error message:", invokeErr.message);
-      console.log("[DEBUG installAddon] invoke error stack:", invokeErr.stack);
+      console.log('[DEBUG installAddon] invoke error message:', invokeErr.message);
+      console.log('[DEBUG installAddon] invoke error stack:', invokeErr.stack);
     }
     throw invokeErr;
   }
@@ -228,7 +229,7 @@ export async function installAddon(
     existing.installedFileId = fileId;
     existing.installedVersion = version;
     existing.installedAt = new Date().toISOString();
-    console.log("[DEBUG installAddon] Updated existing entry");
+    console.log('[DEBUG installAddon] Updated existing entry');
   } else {
     db.installed.push({
       modId: addon.id,
@@ -240,26 +241,26 @@ export async function installAddon(
       installedVersion: version,
       installedAt: new Date().toISOString(),
     });
-    console.log("[DEBUG installAddon] Pushed new entry");
+    console.log('[DEBUG installAddon] Pushed new entry');
   }
 
   await saveDb(db);
-  console.log("[DEBUG installAddon] saveDb complete");
+  console.log('[DEBUG installAddon] saveDb complete');
 }
 
 export async function uninstallAddon(modId: number): Promise<void> {
   const db = await loadDb();
-  if (!db) throw new Error("Could not load database");
+  if (!db) throw new Error('Could not load database');
 
   const entry = db.installed.find((a) => a.modId === modId);
-  if (!entry) throw new Error("Addon not found in database");
+  if (!entry) throw new Error('Addon not found in database');
 
   const folderNames = entry.folderNames?.length ? entry.folderNames : [entry.folderName];
   for (const name of folderNames) {
     const addonPath = `${db.addonsFolder}/${name}`;
     const pathExists = await exists(addonPath);
     if (pathExists) {
-      console.log("[DEBUG uninstallAddon] Removing:", addonPath);
+      console.log('[DEBUG uninstallAddon] Removing:', addonPath);
       await remove(addonPath, { recursive: true });
     }
   }
@@ -283,18 +284,18 @@ async function findTocFiles(dirPath: string): Promise<{ name: string | null; ver
   try {
     const entries = await readDir(dirPath);
     for (const entry of entries) {
-      if (entry.name && entry.name.endsWith(".toc") && !entry.isDirectory) {
+      if (entry.name && entry.name.endsWith('.toc') && !entry.isDirectory) {
         const content = await readTextFile(`${dirPath}/${entry.name}`);
         let name: string | null = null;
         let version: string | null = null;
-        for (const line of content.split("\n")) {
+        for (const line of content.split('\n')) {
           const trimmed = line.trim();
-          if (trimmed.startsWith("## Title: ")) name = trimmed.slice(10).trim();
-          else if (trimmed.startsWith("## Version: ")) version = trimmed.slice(12).trim();
+          if (trimmed.startsWith('## Title: ')) name = trimmed.slice(10).trim();
+          else if (trimmed.startsWith('## Version: ')) version = trimmed.slice(12).trim();
         }
         return { name, version };
       }
-      if (entry.name && entry.isDirectory && !entry.name.startsWith(".")) {
+      if (entry.name && entry.isDirectory && !entry.name.startsWith('.')) {
         const sub = await findTocFiles(`${dirPath}/${entry.name}`);
         if (sub) return sub;
       }
@@ -315,17 +316,13 @@ export async function scanAddonsFolder(): Promise<ScannedAddon[]> {
 
   const isAlreadyTracked = (folderName: string): boolean => {
     if (!db) return false;
-    return db.installed.some(
-      (a) =>
-        a.folderName === folderName ||
-        (a.folderNames && a.folderNames.includes(folderName)),
-    );
+    return db.installed.some((a) => a.folderName === folderName || (a.folderNames && a.folderNames.includes(folderName)));
   };
 
   for (const entry of entries) {
     if (!entry.name || !entry.isDirectory) continue;
-    if (entry.name.startsWith(".")) continue;
-    if (entry.name === ".." || entry.name === ".") continue;
+    if (entry.name.startsWith('.')) continue;
+    if (entry.name === '..' || entry.name === '.') continue;
     if (isAlreadyTracked(entry.name)) continue;
 
     const toc = await findTocFiles(`${folder}/${entry.name}`);
@@ -341,9 +338,7 @@ export async function scanAddonsFolder(): Promise<ScannedAddon[]> {
   return results;
 }
 
-export async function matchScannedAddon(
-  scanned: ScannedAddon,
-): Promise<ScannedAddon> {
+export async function matchScannedAddon(scanned: ScannedAddon): Promise<ScannedAddon> {
   if (scanned.matched) return scanned;
 
   try {
@@ -352,7 +347,7 @@ export async function matchScannedAddon(
     const addons = result.addons;
 
     if (addons.length === 0) {
-      return { ...scanned, matched: false, matchError: "No results from CurseForge" };
+      return { ...scanned, matched: false, matchError: 'No results from CurseForge' };
     }
 
     const searchLower = searchName.toLowerCase();
@@ -386,34 +381,32 @@ export async function matchScannedAddon(
     return {
       ...scanned,
       matched: false,
-      matchError: err instanceof Error ? err.message : "Match request failed",
+      matchError: err instanceof Error ? err.message : 'Match request failed',
     };
   }
 }
 
 export async function adoptScannedAddon(scanned: ScannedAddon): Promise<ScannedAddon> {
   if (!scanned.matchModId) {
-    return { ...scanned, adoptError: "No match to adopt" };
+    return { ...scanned, adoptError: 'No match to adopt' };
   }
 
   try {
     const folder = await getAddonsFolder();
-    if (!folder) throw new Error("Addons folder not configured");
+    if (!folder) throw new Error('Addons folder not configured');
 
     const db = await loadDb();
-    if (!db) throw new Error("Could not load database");
+    if (!db) throw new Error('Could not load database');
 
     const alreadyInDb = db.installed.find(
-      (a) =>
-        a.folderName === scanned.folderName ||
-        (a.folderNames && a.folderNames.includes(scanned.folderName)),
+      (a) => a.folderName === scanned.folderName || (a.folderNames && a.folderNames.includes(scanned.folderName)),
     );
     if (alreadyInDb) {
-      return { ...scanned, adoptError: "Already in database" };
+      return { ...scanned, adoptError: 'Already in database' };
     }
 
     const addon = scanned.matchAddon || (await getMod(scanned.matchModId));
-    if (!addon) throw new Error("Could not load addon data");
+    if (!addon) throw new Error('Could not load addon data');
 
     db.installed.push({
       modId: addon.id,
@@ -430,7 +423,7 @@ export async function adoptScannedAddon(scanned: ScannedAddon): Promise<ScannedA
   } catch (err) {
     return {
       ...scanned,
-      adoptError: err instanceof Error ? err.message : "Adoption failed",
+      adoptError: err instanceof Error ? err.message : 'Adoption failed',
     };
   }
 }
@@ -461,7 +454,7 @@ export async function adoptAllScannedAddons(
   let adoptedCount = 0;
   for (const item of scanned) {
     if (!item.matched || !item.matchModId) {
-      results.push({ ...item, adoptError: item.adoptError || "Not matched" });
+      results.push({ ...item, adoptError: item.adoptError || 'Not matched' });
       continue;
     }
     onProgress?.(adoptedCount, scanned.length, item.matchAddon?.name || item.folderName);
@@ -474,16 +467,16 @@ export async function adoptAllScannedAddons(
 
 export async function importZip(): Promise<string[]> {
   const folder = await getAddonsFolder();
-  if (!folder) throw new Error("Addons folder not configured");
+  if (!folder) throw new Error('Addons folder not configured');
 
   const selected = await open({
     multiple: false,
-    title: "Select a zip file to import",
-    filters: [{ name: "ZIP Archive", extensions: ["zip"] }],
+    title: 'Select a zip file to import',
+    filters: [{ name: 'ZIP Archive', extensions: ['zip'] }],
   });
-  if (!selected || typeof selected !== "string") return [];
+  if (!selected || typeof selected !== 'string') return [];
 
-  const result = await invoke<string>("import_zip", {
+  const result = await invoke<string>('import_zip', {
     zipPath: selected,
     targetDir: folder,
   });

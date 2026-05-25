@@ -1,4 +1,4 @@
-import type { CategoryOption } from "../services/curseforge";
+import type { CategoryOption } from '../services/curseforge';
 
 interface CategorySidebarProps {
   categories: CategoryOption[];
@@ -6,28 +6,22 @@ interface CategorySidebarProps {
   onCategoryChange: (id: number) => void;
 }
 
-export default function CategorySidebar({
-  categories,
-  selectedCategoryId,
-  onCategoryChange,
-}: CategorySidebarProps) {
+export default function CategorySidebar({ categories, selectedCategoryId, onCategoryChange }: CategorySidebarProps) {
   return (
-    <aside className="w-56 shrink-0">
-      <div className="sticky top-4 bg-wow-panel border border-wow-border-light rounded-sm relative
-        before:pointer-events-none before:absolute before:inset-[1px]
-        before:border before:border-wow-border-gold/20 before:rounded-sm">
-        <h2 className="text-xs font-wow-heading tracking-widest uppercase text-wow-gold px-4 py-2.5 border-b border-wow-border-light">
+    <aside className='w-56 shrink-0'>
+      <div className='bg-wow-panel border-wow-border-light before:border-wow-border-gold/20 relative sticky top-4 rounded-sm border before:pointer-events-none before:absolute before:inset-[1px] before:rounded-sm before:border'>
+        <h2 className='font-wow-heading text-wow-gold border-wow-border-light border-b px-4 py-2.5 text-xs tracking-widest uppercase'>
           Categories
         </h2>
-        <nav className="p-1.5 space-y-0.5">
+        <nav className='space-y-0.5 p-1.5'>
           {categories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => onCategoryChange(cat.id)}
-              className={`w-full text-left px-3 py-1.5 text-sm rounded-sm transition-all duration-150 ${
-                cat.id === selectedCategoryId
-                  ? "text-wow-gold bg-wow-border-gold/10 border-l-2 border-wow-gold pl-[10px]"
-                  : "text-wow-text-dim hover:text-wow-text hover:bg-wow-panel-hover"
+              className={`w-full rounded-sm px-3 py-1.5 text-left text-sm transition-all duration-150 ${
+                cat.id === selectedCategoryId ?
+                  'text-wow-gold bg-wow-border-gold/10 border-wow-gold border-l-2 pl-[10px]'
+                : 'text-wow-text-dim hover:text-wow-text hover:bg-wow-panel-hover'
               }`}
             >
               {cat.name}

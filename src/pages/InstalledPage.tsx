@@ -1,22 +1,22 @@
-import { useState, useEffect, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { openPath } from "@tauri-apps/plugin-opener";
+import { openPath } from '@tauri-apps/plugin-opener';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import WoWButton from '../components/wow/WoWButton';
+import WoWPanel from '../components/wow/WoWPanel';
+import type { InstalledAddon, ScannedAddon } from '../services/addonManager';
 import {
-  getAddonsFolder,
-  pickAddonsFolder,
-  loadDb,
-  getInstalledAddons,
-  uninstallAddon,
-  scanAddonsFolder,
-  matchScannedAddon,
-  matchAllScannedAddons,
-  adoptScannedAddon,
   adoptAllScannedAddons,
+  adoptScannedAddon,
+  getAddonsFolder,
+  getInstalledAddons,
   importZip,
-} from "../services/addonManager";
-import type { InstalledAddon, ScannedAddon } from "../services/addonManager";
-import WoWPanel from "../components/wow/WoWPanel";
-import WoWButton from "../components/wow/WoWButton";
+  loadDb,
+  matchAllScannedAddons,
+  matchScannedAddon,
+  pickAddonsFolder,
+  scanAddonsFolder,
+  uninstallAddon,
+} from '../services/addonManager';
 
 export default function InstalledPage() {
   const navigate = useNavigate();
@@ -83,9 +83,7 @@ export default function InstalledPage() {
       const item = scanned.find((s) => s.folderName === folderName);
       if (item) {
         const matched = await matchScannedAddon(item);
-        setScanned((prev) =>
-          prev.map((s) => (s.folderName === folderName ? matched : s)),
-        );
+        setScanned((prev) => prev.map((s) => (s.folderName === folderName ? matched : s)));
       }
     } finally {
       setMatching((prev) => {
@@ -118,9 +116,7 @@ export default function InstalledPage() {
       if (item && item.matchModId) {
         const result = await adoptScannedAddon(item);
         if (result.adoptError) {
-          setScanned((prev) =>
-            prev.map((s) => (s.folderName === folderName ? result : s)),
-          );
+          setScanned((prev) => prev.map((s) => (s.folderName === folderName ? result : s)));
         } else {
           await refresh();
           setScanned((prev) => prev.filter((s) => s.folderName !== folderName));
@@ -142,10 +138,12 @@ export default function InstalledPage() {
       await refresh();
       if (failed.length > 0) {
         setScanned((prev) =>
-          prev.map((s) => {
-            const f = failed.find((x) => x.folderName === s.folderName);
-            return f || (s.matched && s.matchModId ? { ...s, adoptError: undefined } : s);
-          }).filter((s) => !(s.matched && s.matchModId && !s.adoptError)),
+          prev
+            .map((s) => {
+              const f = failed.find((x) => x.folderName === s.folderName);
+              return f || (s.matched && s.matchModId ? { ...s, adoptError: undefined } : s);
+            })
+            .filter((s) => !(s.matched && s.matchModId && !s.adoptError)),
         );
       } else {
         setScanned([]);
@@ -170,7 +168,7 @@ export default function InstalledPage() {
         });
       }
     } catch (err) {
-      console.error("Import failed", err);
+      console.error('Import failed', err);
     } finally {
       setImporting(false);
     }
@@ -181,10 +179,10 @@ export default function InstalledPage() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-wow-panel rounded-sm w-1/3" />
-          <div className="h-64 bg-wow-panel rounded-sm" />
+      <div className='mx-auto max-w-4xl px-4 py-8'>
+        <div className='animate-pulse space-y-4'>
+          <div className='bg-wow-panel h-8 w-1/3 rounded-sm' />
+          <div className='bg-wow-panel h-64 rounded-sm' />
         </div>
       </div>
     );
@@ -192,40 +190,32 @@ export default function InstalledPage() {
 
   if (!addonsFolder) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-        <div className="mb-6">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-sm border border-wow-border-gold/30 bg-wow-panel flex items-center justify-center">
-            <svg
-              className="w-8 h-8 text-wow-gold"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
+      <div className='mx-auto max-w-4xl px-4 py-20 text-center'>
+        <div className='mb-6'>
+          <div className='border-wow-border-gold/30 bg-wow-panel mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-sm border'>
+            <svg className='text-wow-gold h-8 w-8' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
               <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
+                strokeLinecap='round'
+                strokeLinejoin='round'
                 strokeWidth={1.5}
-                d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                d='M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z'
               />
             </svg>
           </div>
-          <h2 className="text-xl font-wow-heading tracking-wide text-wow-gold mb-2">
-            No Addons Folder Set
-          </h2>
-          <p className="text-wow-text-dim mb-6 max-w-md mx-auto">
-            Select your World of Warcraft AddOns folder to start installing and
-            managing addons directly from WowAdder.
+          <h2 className='font-wow-heading text-wow-gold mb-2 text-xl tracking-wide'>No Addons Folder Set</h2>
+          <p className='text-wow-text-dim mx-auto mb-6 max-w-md'>
+            Select your World of Warcraft AddOns folder to start installing and managing addons directly from WowAdder.
           </p>
-          <WoWButton variant="primary" size="md" onClick={handlePickFolder}>
+          <WoWButton variant='primary' size='md' onClick={handlePickFolder}>
             Select AddOns Folder
           </WoWButton>
         </div>
-        <div className="mt-8 p-4 bg-wow-panel border border-wow-border-light rounded-sm text-left max-w-md mx-auto">
-          <p className="text-xs text-wow-text-muted font-wow-heading tracking-wide mb-1 uppercase">
+        <div className='bg-wow-panel border-wow-border-light mx-auto mt-8 max-w-md rounded-sm border p-4 text-left'>
+          <p className='text-wow-text-muted font-wow-heading mb-1 text-xs tracking-wide uppercase'>
             Typical WoW AddOns path:
           </p>
-          <code className="text-xs text-wow-text-dim block">
-            <span className="whitespace-nowrap">(Folder with WoW.exe)</span>
+          <code className='text-wow-text-dim block text-xs'>
+            <span className='whitespace-nowrap'>(Folder with WoW.exe)</span>
             /Interface/AddOns
           </code>
         </div>
@@ -234,174 +224,133 @@ export default function InstalledPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className='mx-auto max-w-4xl px-4 py-8'>
+      <div className='mb-6 flex items-center justify-between'>
         <div>
-          <h1 className="text-xl font-wow-heading tracking-wide text-wow-gold">Installed Addons</h1>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <p className="text-xs text-wow-text-muted">{addonsFolder}</p>
+          <h1 className='font-wow-heading text-wow-gold text-xl tracking-wide'>Installed Addons</h1>
+          <div className='mt-0.5 flex items-center gap-1.5'>
+            <p className='text-wow-text-muted text-xs'>{addonsFolder}</p>
             <button
               onClick={() => openPath(addonsFolder!)}
-              className="text-wow-text-muted hover:text-wow-gold transition-colors"
-              title="Open in file manager"
+              className='text-wow-text-muted hover:text-wow-gold transition-colors'
+              title='Open in file manager'
             >
-              <svg
-                className="w-3.5 h-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
+              <svg className='h-3.5 w-3.5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
                 <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
                   strokeWidth={2}
-                  d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"
+                  d='M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z'
                 />
               </svg>
             </button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <WoWButton variant="ghost" size="sm" onClick={handlePickFolder}>
+        <div className='flex items-center gap-2'>
+          <WoWButton variant='ghost' size='sm' onClick={handlePickFolder}>
             Change Folder
           </WoWButton>
-          <WoWButton
-            variant="primary"
-            size="sm"
-            onClick={handleScan}
-            disabled={scanning}
-          >
-            {scanning ? (
-              <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          <WoWButton variant='primary' size='sm' onClick={handleScan} disabled={scanning}>
+            {scanning ?
+              <svg className='h-3.5 w-3.5 animate-spin' viewBox='0 0 24 24'>
+                <circle className='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='4' fill='none' />
+                <path className='opacity-75' fill='currentColor' d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z' />
               </svg>
-            ) : null}
-            {scanning ? "Scanning..." : "Sync"}
+            : null}
+            {scanning ? 'Scanning...' : 'Sync'}
           </WoWButton>
-          <WoWButton
-            variant="default"
-            size="sm"
-            onClick={handleImport}
-            disabled={importing}
-          >
-            {importing ? "Importing..." : "Import ZIP"}
+          <WoWButton variant='default' size='sm' onClick={handleImport} disabled={importing}>
+            {importing ? 'Importing...' : 'Import ZIP'}
           </WoWButton>
         </div>
       </div>
 
       {scanned.length > 0 && (
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-wow-heading tracking-wide text-wow-quality-orange flex items-center gap-1.5">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
+        <div className='mb-6'>
+          <div className='mb-2 flex items-center justify-between'>
+            <h3 className='font-wow-heading text-wow-quality-orange flex items-center gap-1.5 text-sm tracking-wide'>
+              <svg className='h-4 w-4' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
                 <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
                   strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'
                 />
               </svg>
-              {scanned.length} external addon{scanned.length !== 1 ? "s" : ""} detected
+              {scanned.length} external addon{scanned.length !== 1 ? 's' : ''} detected
             </h3>
-            <div className="flex items-center gap-2">
+            <div className='flex items-center gap-2'>
               {unmatchedCount > 0 && (
-                <WoWButton
-                  variant="default"
-                  size="sm"
-                  onClick={handleMatchAll}
-                  disabled={batchMatching}
-                >
-                  {batchMatching ? "Matching..." : `Match All (${unmatchedCount})`}
+                <WoWButton variant='default' size='sm' onClick={handleMatchAll} disabled={batchMatching}>
+                  {batchMatching ? 'Matching...' : `Match All (${unmatchedCount})`}
                 </WoWButton>
               )}
               {matchableCount > 0 && (
-                <WoWButton
-                  variant="primary"
-                  size="sm"
-                  onClick={handleAdoptAll}
-                  disabled={batchAdopting}
-                >
-                  {batchAdopting ? "Importing..." : `Import All (${matchableCount})`}
+                <WoWButton variant='primary' size='sm' onClick={handleAdoptAll} disabled={batchAdopting}>
+                  {batchAdopting ? 'Importing...' : `Import All (${matchableCount})`}
                 </WoWButton>
               )}
             </div>
           </div>
 
           {batchProgress && (
-            <div className="mb-3 flex items-center gap-2 text-xs text-wow-gold bg-wow-border-gold/10 border border-wow-border-gold/30 rounded-sm px-3 py-2">
-              <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            <div className='text-wow-gold bg-wow-border-gold/10 border-wow-border-gold/30 mb-3 flex items-center gap-2 rounded-sm border px-3 py-2 text-xs'>
+              <svg className='h-3 w-3 animate-spin' viewBox='0 0 24 24'>
+                <circle className='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='4' fill='none' />
+                <path className='opacity-75' fill='currentColor' d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z' />
               </svg>
               {batchProgress}
             </div>
           )}
 
-          <div className="space-y-2">
+          <div className='space-y-2'>
             {scanned.map((item) => (
               <div
                 key={item.folderName}
-                className="bg-wow-bg border border-wow-quality-orange/30 rounded-sm p-3 flex items-center justify-between"
+                className='bg-wow-bg border-wow-quality-orange/30 flex items-center justify-between rounded-sm border p-3'
               >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-wow-text truncate">
-                    {item.name || item.folderName}
-                  </p>
-                  <p className="text-xs text-wow-text-muted">
+                <div className='min-w-0 flex-1'>
+                  <p className='text-wow-text truncate text-sm font-medium'>{item.name || item.folderName}</p>
+                  <p className='text-wow-text-muted text-xs'>
                     {item.folderName}
-                    {item.version ? ` v${item.version}` : ""}
+                    {item.version ? ` v${item.version}` : ''}
                   </p>
-                  {item.matchError && (
-                    <p className="text-[10px] text-wow-quality-orange mt-0.5">
-                      {item.matchError}
-                    </p>
-                  )}
-                  {item.adoptError && (
-                    <p className="text-[10px] text-wow-danger mt-0.5">
-                      {item.adoptError}
-                    </p>
-                  )}
+                  {item.matchError && <p className='text-wow-quality-orange mt-0.5 text-[10px]'>{item.matchError}</p>}
+                  {item.adoptError && <p className='text-wow-danger mt-0.5 text-[10px]'>{item.adoptError}</p>}
                 </div>
-                <div className="flex items-center gap-2 shrink-0 ml-3">
-                  {item.adoptError ? (
+                <div className='ml-3 flex shrink-0 items-center gap-2'>
+                  {item.adoptError ?
                     <WoWButton
-                      variant="danger"
-                      size="sm"
+                      variant='danger'
+                      size='sm'
                       onClick={() => handleMatch(item.folderName)}
                       disabled={matching.has(item.folderName)}
                     >
-                      {matching.has(item.folderName) ? "..." : "Retry"}
+                      {matching.has(item.folderName) ? '...' : 'Retry'}
                     </WoWButton>
-                  ) : item.matched && item.matchAddon ? (
+                  : item.matched && item.matchAddon ?
                     <>
-                      <span className="text-xs text-wow-quality-green font-wow-heading tracking-wide">
+                      <span className='text-wow-quality-green font-wow-heading text-xs tracking-wide'>
                         {item.matchAddon.name}
                       </span>
                       <WoWButton
-                        variant="primary"
-                        size="sm"
+                        variant='primary'
+                        size='sm'
                         onClick={() => handleAdopt(item.folderName)}
                         disabled={adopting === item.folderName || batchAdopting}
                       >
-                        {adopting === item.folderName ? "..." : "Import"}
+                        {adopting === item.folderName ? '...' : 'Import'}
                       </WoWButton>
                     </>
-                  ) : (
-                    <WoWButton
-                      variant="default"
-                      size="sm"
+                  : <WoWButton
+                      variant='default'
+                      size='sm'
                       onClick={() => handleMatch(item.folderName)}
                       disabled={matching.has(item.folderName) || batchMatching}
                     >
-                      {matching.has(item.folderName) ? "Matching..." : "Match"}
+                      {matching.has(item.folderName) ? 'Matching...' : 'Match'}
                     </WoWButton>
-                  )}
+                  }
                 </div>
               </div>
             ))}
@@ -409,86 +358,65 @@ export default function InstalledPage() {
         </div>
       )}
 
-      {installed.length === 0 ? (
-        <div className="text-center py-20">
-          <div className="w-12 h-12 mx-auto mb-3 rounded-sm border border-wow-border-gold/30 bg-wow-panel flex items-center justify-center">
-            <svg
-              className="w-6 h-6 text-wow-gold"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
+      {installed.length === 0 ?
+        <div className='py-20 text-center'>
+          <div className='border-wow-border-gold/30 bg-wow-panel mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-sm border'>
+            <svg className='text-wow-gold h-6 w-6' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
               <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
+                strokeLinecap='round'
+                strokeLinejoin='round'
                 strokeWidth={1.5}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                d='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
               />
             </svg>
           </div>
-          <p className="text-wow-text-dim text-sm font-wow-heading tracking-wider">
-            No addons installed
-          </p>
-          <p className="text-wow-text-muted text-xs mt-1">
-            Browse addons and install them from the addon detail page
-          </p>
+          <p className='text-wow-text-dim font-wow-heading text-sm tracking-wider'>No addons installed</p>
+          <p className='text-wow-text-muted mt-1 text-xs'>Browse addons and install them from the addon detail page</p>
           <Link
-            to="/"
-            className="inline-block mt-4 px-4 py-2 text-sm font-wow-heading tracking-wide bg-wow-gold text-wow-bg rounded-sm hover:bg-wow-gold/90 transition-colors"
+            to='/'
+            className='font-wow-heading bg-wow-gold text-wow-bg hover:bg-wow-gold/90 mt-4 inline-block rounded-sm px-4 py-2 text-sm tracking-wide transition-colors'
           >
             Browse Addons
           </Link>
         </div>
-      ) : (
-        <WoWPanel className="divide-y divide-wow-border-light">
+      : <WoWPanel className='divide-wow-border-light divide-y'>
           {installed.map((addon) => (
-            <div
-              key={addon.modId}
-              className="p-4 hover:bg-wow-panel-hover/50 transition-colors"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
+            <div key={addon.modId} className='hover:bg-wow-panel-hover/50 p-4 transition-colors'>
+              <div className='flex items-start justify-between gap-4'>
+                <div className='min-w-0 flex-1'>
                   <button
                     onClick={() => navigate(`/addon/${addon.modId}`)}
-                    className="text-sm font-wow-heading tracking-wide text-wow-text hover:text-wow-gold transition-colors text-left"
+                    className='font-wow-heading text-wow-text hover:text-wow-gold text-left text-sm tracking-wide transition-colors'
                   >
                     {addon.name}
                   </button>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {(addon.folderNames?.length
-                      ? addon.folderNames
-                      : [addon.folderName]
-                    ).map((f) => (
-                      <span
-                        key={f}
-                        className="text-[10px] px-1.5 py-0.5 rounded-sm bg-wow-panel text-wow-text-muted"
-                      >
+                  <div className='mt-1 flex flex-wrap gap-1'>
+                    {(addon.folderNames?.length ? addon.folderNames : [addon.folderName]).map((f) => (
+                      <span key={f} className='bg-wow-panel text-wow-text-muted rounded-sm px-1.5 py-0.5 text-[10px]'>
                         {f}
                       </span>
                     ))}
                   </div>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-[11px] text-wow-text-muted">
-                      v{addon.installedVersion || "?"}
-                    </span>
-                    <span className="text-[11px] text-wow-text-muted">
+                  <div className='mt-1 flex items-center gap-3'>
+                    <span className='text-wow-text-muted text-[11px]'>v{addon.installedVersion || '?'}</span>
+                    <span className='text-wow-text-muted text-[11px]'>
                       {new Date(addon.installedAt).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
                 <WoWButton
-                  variant="danger"
-                  size="sm"
+                  variant='danger'
+                  size='sm'
                   onClick={() => handleUninstall(addon.modId)}
                   disabled={uninstalling === addon.modId}
                 >
-                  {uninstalling === addon.modId ? "Removing..." : "Uninstall"}
+                  {uninstalling === addon.modId ? 'Removing...' : 'Uninstall'}
                 </WoWButton>
               </div>
             </div>
           ))}
         </WoWPanel>
-      )}
+      }
     </div>
   );
 }

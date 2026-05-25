@@ -1,42 +1,40 @@
-import { useState, useEffect } from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
-import { check } from "@tauri-apps/plugin-updater";
-import ParmajawnEasterEgg from "./ParmajawnEasterEgg";
+import { check } from '@tauri-apps/plugin-updater';
+import { useEffect, useState } from 'react';
+import { Link, Outlet, useLocation } from 'react-router-dom';
+import ParmajawnEasterEgg from './ParmajawnEasterEgg';
 
 export default function Layout() {
   const location = useLocation();
-  const [updateState, setUpdateState] = useState<
-    "idle" | "checking" | "downloading" | "installing" | "error"
-  >("idle");
+  const [updateState, setUpdateState] = useState<'idle' | 'checking' | 'downloading' | 'installing' | 'error'>('idle');
   const [downloaded, setDownloaded] = useState(0);
   const [totalSize, setTotalSize] = useState(0);
-  const [updateVersion, setUpdateVersion] = useState("");
+  const [updateVersion, setUpdateVersion] = useState('');
 
   useEffect(() => {
     if (import.meta.env.DEV) return;
     let cancelled = false;
     const doUpdate = async () => {
       try {
-        setUpdateState("checking");
+        setUpdateState('checking');
         const update = await check();
         if (cancelled || !update) {
-          if (!cancelled) setUpdateState("idle");
+          if (!cancelled) setUpdateState('idle');
           return;
         }
         setUpdateVersion(update.version);
-        setUpdateState("downloading");
+        setUpdateState('downloading');
         await update.download((event) => {
-          if (event.event === "Started") {
+          if (event.event === 'Started') {
             setTotalSize(event.data.contentLength ?? 0);
-          } else if (event.event === "Progress") {
+          } else if (event.event === 'Progress') {
             setDownloaded((prev) => prev + event.data.chunkLength);
           }
         });
         if (cancelled) return;
-        setUpdateState("installing");
+        setUpdateState('installing');
         await update.install();
       } catch {
-        if (!cancelled) setUpdateState("error");
+        if (!cancelled) setUpdateState('error');
       }
     };
     doUpdate();
@@ -46,94 +44,87 @@ export default function Layout() {
   }, []);
 
   return (
-    <div className="min-h-screen text-wow-text flex flex-col">
-      {updateState !== "idle" && (
+    <div className='text-wow-text flex min-h-screen flex-col'>
+      {updateState !== 'idle' && (
         <div
-          className={`px-4 py-2 text-sm text-center border-b flex items-center justify-center gap-3 ${
-            updateState === "error"
-              ? "bg-wow-danger/15 border-wow-danger/30 text-wow-danger"
-              : "bg-wow-border-gold/10 border-wow-border-gold/30 text-wow-gold"
+          className={`flex items-center justify-center gap-3 border-b px-4 py-2 text-center text-sm ${
+            updateState === 'error' ?
+              'bg-wow-danger/15 border-wow-danger/30 text-wow-danger'
+            : 'bg-wow-border-gold/10 border-wow-border-gold/30 text-wow-gold'
           }`}
         >
-          {updateState === "checking" && (
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 border-2 border-wow-gold border-t-transparent rounded-full animate-spin" />
+          {updateState === 'checking' && (
+            <div className='flex items-center gap-2'>
+              <div className='border-wow-gold h-3 w-3 animate-spin rounded-full border-2 border-t-transparent' />
               Checking for updates...
             </div>
           )}
-          {updateState === "downloading" && (
-            <div className="flex items-center gap-3 w-full max-w-sm">
-              <span className="shrink-0 font-wow-heading">
-                Downloading v{updateVersion}
-              </span>
-              <div className="flex-1 h-2 bg-wow-panel rounded-sm overflow-hidden border border-wow-border-gold/30 relative">
+          {updateState === 'downloading' && (
+            <div className='flex w-full max-w-sm items-center gap-3'>
+              <span className='font-wow-heading shrink-0'>Downloading v{updateVersion}</span>
+              <div className='bg-wow-panel border-wow-border-gold/30 relative h-2 flex-1 overflow-hidden rounded-sm border'>
                 <div
-                  className="absolute inset-0 bg-linear-to-r from-wow-border-gold to-wow-gold transition-all duration-200"
+                  className='from-wow-border-gold to-wow-gold absolute inset-0 bg-linear-to-r transition-all duration-200'
                   style={{
-                    width:
-                      totalSize > 0
-                        ? `${Math.min(100, (downloaded / totalSize) * 100)}%`
-                        : "0%",
+                    width: totalSize > 0 ? `${Math.min(100, (downloaded / totalSize) * 100)}%` : '0%',
                   }}
                 />
               </div>
-              <span className="shrink-0 text-xs w-12 text-right text-wow-text-dim">
-                {totalSize > 0
-                  ? `${Math.min(99, Math.round((downloaded / totalSize) * 100))}%`
-                  : `${(downloaded / 1024 / 1024).toFixed(1)} MB`}
+              <span className='text-wow-text-dim w-12 shrink-0 text-right text-xs'>
+                {totalSize > 0 ?
+                  `${Math.min(99, Math.round((downloaded / totalSize) * 100))}%`
+                : `${(downloaded / 1024 / 1024).toFixed(1)} MB`}
               </span>
             </div>
           )}
-          {updateState === "installing" && (
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 border-2 border-wow-gold border-t-transparent rounded-full animate-spin" />
-              <span className="font-wow-heading">
-                Installing v{updateVersion}...
-              </span>
+          {updateState === 'installing' && (
+            <div className='flex items-center gap-2'>
+              <div className='border-wow-gold h-3 w-3 animate-spin rounded-full border-2 border-t-transparent' />
+              <span className='font-wow-heading'>Installing v{updateVersion}...</span>
             </div>
           )}
-          {updateState === "error" && "Update check failed"}
+          {updateState === 'error' && 'Update check failed'}
         </div>
       )}
-      <header className="border-b border-wow-border relative">
-        <div className="absolute inset-0 bg-linear-to-b from-wow-border-gold/5 to-transparent pointer-events-none" />
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between relative">
-          <div className="flex items-center gap-3 hover:opacity-80 transition-opacity group">
-            <div className="w-8 h-8 rounded-sm bg-linear-to-br from-wow-gold via-wow-gold-dim to-wow-border-gold/60 flex items-center justify-center shadow-[0_0_8px_rgba(251,191,36,0.2)]">
-              <img src="/logo.png" alt="WowAdder" className="w-8 h-8" />
+      <header className='border-wow-border relative border-b'>
+        <div className='from-wow-border-gold/5 pointer-events-none absolute inset-0 bg-linear-to-b to-transparent' />
+        <div className='relative mx-auto flex h-14 max-w-7xl items-center justify-between px-4'>
+          <div className='group flex items-center gap-3 transition-opacity hover:opacity-80'>
+            <div className='from-wow-gold via-wow-gold-dim to-wow-border-gold/60 flex h-8 w-8 items-center justify-center rounded-sm bg-linear-to-br shadow-[0_0_8px_rgba(251,191,36,0.2)]'>
+              <img src='/logo.png' alt='WowAdder' className='h-8 w-8' />
             </div>
-            <span className="font-wow-heading text-lg tracking-wider text-wow-gold group-hover:text-wow-gold/80 transition-colors">
+            <span className='font-wow-heading text-wow-gold group-hover:text-wow-gold/80 text-lg tracking-wider transition-colors'>
               WowAdder
             </span>
           </div>
-          <nav className="flex items-center gap-1">
+          <nav className='flex items-center gap-1'>
             <Link
-              to="/"
-              className={`px-3 py-1.5 text-sm font-wow-heading tracking-wider uppercase transition-all duration-150 relative ${
-                location.pathname === "/"
-                  ? "text-wow-gold after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-3/4 after:h-px after:bg-wow-gold/60"
-                  : "text-wow-text-dim hover:text-wow-text"
+              to='/'
+              className={`font-wow-heading relative px-3 py-1.5 text-sm tracking-wider uppercase transition-all duration-150 ${
+                location.pathname === '/' ?
+                  'text-wow-gold after:bg-wow-gold/60 after:absolute after:bottom-0 after:left-1/2 after:h-px after:w-3/4 after:-translate-x-1/2'
+                : 'text-wow-text-dim hover:text-wow-text'
               }`}
             >
               Browse
             </Link>
             <Link
-              to="/installed"
-              className={`px-3 py-1.5 text-sm font-wow-heading tracking-wider uppercase transition-all duration-150 relative ${
-                location.pathname === "/installed"
-                  ? "text-wow-gold after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-3/4 after:h-px after:bg-wow-gold/60"
-                  : "text-wow-text-dim hover:text-wow-text"
+              to='/installed'
+              className={`font-wow-heading relative px-3 py-1.5 text-sm tracking-wider uppercase transition-all duration-150 ${
+                location.pathname === '/installed' ?
+                  'text-wow-gold after:bg-wow-gold/60 after:absolute after:bottom-0 after:left-1/2 after:h-px after:w-3/4 after:-translate-x-1/2'
+                : 'text-wow-text-dim hover:text-wow-text'
               }`}
             >
               Installed
             </Link>
-            <div className="w-px h-4 bg-wow-border-light mx-1" />
+            <div className='bg-wow-border-light mx-1 h-4 w-px' />
             <Link
-              to="/settings"
-              className={`px-3 py-1.5 text-sm font-wow-heading tracking-wider uppercase transition-all duration-150 relative ${
-                location.pathname === "/settings"
-                  ? "text-wow-gold after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-3/4 after:h-px after:bg-wow-gold/60"
-                  : "text-wow-text-dim hover:text-wow-text"
+              to='/settings'
+              className={`font-wow-heading relative px-3 py-1.5 text-sm tracking-wider uppercase transition-all duration-150 ${
+                location.pathname === '/settings' ?
+                  'text-wow-gold after:bg-wow-gold/60 after:absolute after:bottom-0 after:left-1/2 after:h-px after:w-3/4 after:-translate-x-1/2'
+                : 'text-wow-text-dim hover:text-wow-text'
               }`}
             >
               Settings
@@ -141,7 +132,7 @@ export default function Layout() {
           </nav>
         </div>
       </header>
-      <main className="flex-1">
+      <main className='flex-1'>
         <Outlet />
       </main>
       <ParmajawnEasterEgg />

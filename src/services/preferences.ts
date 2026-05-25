@@ -1,8 +1,8 @@
-import type { SortOption } from "../components/SortSelector";
+import type { SortOption } from '../components/SortSelector';
 
-export type ColorScheme = "default" | "emerald" | "crimson" | "nightelf" | "frost";
+export type ColorScheme = 'default' | 'emerald' | 'crimson' | 'nightelf' | 'frost';
 
-const PREFIX = "wowadder_pref_";
+const PREFIX = 'wowadder_pref_';
 
 interface Preferences {
   version: string;
@@ -12,10 +12,10 @@ interface Preferences {
 }
 
 const DEFAULTS: Preferences = {
-  version: "",
+  version: '',
   pageSize: 20,
-  sortOption: { label: "Most Downloads", field: 6, order: "desc" },
-  colorScheme: "default",
+  sortOption: { label: 'Most Downloads', field: 6, order: 'desc' },
+  colorScheme: 'default',
 };
 
 export function loadPrefs(): Preferences {
