@@ -1,3 +1,14 @@
+## [0.3.15] - 2026-05-25
+
+### Added
+
+- **scripts**: add --undo flag to revert a release
+
+### Changed
+
+- **src-tauri**: optimize release and dev build profiles
+- apply Prettier formatting across source files
+
 ## [0.3.14] - 2026-05-25
 
 ### Other

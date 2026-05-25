@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "WowAdder",
-  "version": "0.3.14",
+  "version": "0.3.15",
   "identifier": "com.gloves.wowadder",
   "build": {
     "beforeDevCommand": "bun run dev",
@@ -24,11 +24,19 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"]
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
   },
   "plugins": {
     "updater": {
-      "endpoints": ["https://github.com/TheGloved1/WowAdder/releases/latest/download/updater.json"],
+      "endpoints": [
+        "https://github.com/TheGloved1/WowAdder/releases/latest/download/updater.json"
+      ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDhBNTQ5RDc0RERFNTJERjgKUldUNExlWGRkSjFVaXREZWpVeWo4ckowbHVpRjBpTmd2Y3pTMFhFVVBZekdBN2lvdnZqb2lGMlQK"
     }
   }
