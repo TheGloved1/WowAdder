@@ -15,7 +15,7 @@ export default function WoWIconFrame({ children, size = 'md', className = '' }: 
 
   return (
     <div
-      className={`${sizes[size]} bg-wow-panel border-wow-border-light before:border-wow-border-gold/20 relative shrink-0 overflow-hidden rounded-sm border before:pointer-events-none before:absolute before:inset-[1px] before:rounded-sm before:border ${className}`}
+      className={`${sizes[size]} bg-wow-panel border-wow-border-light before:border-wow-border-gold/20 relative shrink-0 overflow-hidden rounded-sm border before:pointer-events-none before:absolute before:inset-px before:rounded-sm before:border ${className}`}
     >
       {children}
     </div>

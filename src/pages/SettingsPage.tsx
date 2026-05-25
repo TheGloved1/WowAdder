@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { version } from '../../package.json';
 import changelogRaw from '../../CHANGELOG.md?raw';
+import { version } from '../../package.json';
 import WoWDivider from '../components/wow/WoWDivider';
 import WoWPanel from '../components/wow/WoWPanel';
 import type { ColorScheme } from '../services/preferences';
@@ -126,7 +126,7 @@ export default function SettingsPage() {
             }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-wow-panel transition-transform duration-200 ${
+              className={`bg-wow-panel inline-block h-4 w-4 transform rounded-full transition-transform duration-200 ${
                 supportDevs ? 'translate-x-5.5' : 'translate-x-1'
               }`}
             />
@@ -174,18 +174,30 @@ export default function SettingsPage() {
             onClick={() => setChangelogOpen(!changelogOpen)}
             className='text-wow-gold-dim hover:text-wow-gold flex w-full items-center gap-2 text-left text-sm tracking-wider transition-colors'
           >
-            <span className={`inline-block transition-transform duration-200 ${changelogOpen ? 'rotate-90' : ''}`}>&#8250;</span>
+            <span className={`inline-block transition-transform duration-200 ${changelogOpen ? 'rotate-90' : ''}`}>
+              &#8250;
+            </span>
             Changelog
           </button>
           {changelogOpen && (
             <div className='bg-wow-bg border-wow-border mt-2 max-h-96 overflow-y-auto rounded-sm border p-4'>
               <ReactMarkdown
                 components={{
-                  h1: ({ children }) => <h1 className='font-wow-heading text-wow-gold mb-2 text-base tracking-wider'>{children}</h1>,
-                  h2: ({ children }) => <h2 className='font-wow-heading text-wow-gold-dim mb-2 mt-4 text-sm tracking-wider first:mt-0'>{children}</h2>,
-                  h3: ({ children }) => <h3 className='text-wow-text-dim mb-1 mt-3 text-xs font-semibold tracking-wider'>{children}</h3>,
+                  h1: ({ children }) => (
+                    <h1 className='font-wow-heading text-wow-gold mb-2 text-base tracking-wider'>{children}</h1>
+                  ),
+                  h2: ({ children }) => (
+                    <h2 className='font-wow-heading text-wow-gold-dim mt-4 mb-2 text-sm tracking-wider first:mt-0'>
+                      {children}
+                    </h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3 className='text-wow-text-dim mt-3 mb-1 text-xs font-semibold tracking-wider'>{children}</h3>
+                  ),
                   p: ({ children }) => <p className='text-wow-text-dim mb-1 text-xs'>{children}</p>,
-                  ul: ({ children }) => <ul className='text-wow-text-dim mb-2 ml-3 list-inside list-disc text-xs'>{children}</ul>,
+                  ul: ({ children }) => (
+                    <ul className='text-wow-text-dim mb-2 ml-3 list-inside list-disc text-xs'>{children}</ul>
+                  ),
                   li: ({ children }) => <li className='mb-0.5'>{children}</li>,
                   strong: ({ children }) => <strong className='text-wow-text'>{children}</strong>,
                 }}
