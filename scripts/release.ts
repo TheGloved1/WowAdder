@@ -194,7 +194,7 @@ Examples:
       }
     }
 
-    let entry = `## [${next}] - ${today}`;
+    let entry = `## ${today}`;
     let hasContent = false;
 
     if (added.length) {
@@ -269,6 +269,8 @@ Edit CHANGELOG.md manually, then run:
 
   const filesToAdd = [
     "package.json",
+    "src-tauri/Cargo.toml",
+    "src-tauri/tauri.conf.json",
     ...(skipChangelog ? [] : ["CHANGELOG.md", `changelogs/v${next}.md`]),
   ];
   execSync(`git add ${filesToAdd.join(" ")}`, { encoding: "utf-8" });
