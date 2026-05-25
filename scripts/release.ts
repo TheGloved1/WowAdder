@@ -237,20 +237,24 @@ Examples:
     const { changelogEntry, releaseEntry } = generateChangelog(next);
 
     // Insert into CHANGELOG.md
-    const changelogPath = 'CHANGELOG.md';
+    const changelogPath = "CHANGELOG.md";
     if (existsSync(changelogPath)) {
-      const changelog = readFileSync(changelogPath, 'utf-8');
-      const marker = '\n## [';
-      const idx = changelog.indexOf(marker);
-      if (idx !== -1) {
-        const before = changelog.slice(0, idx);
-        const after = changelog.slice(idx);
-        writeFileSync(changelogPath, before + '\n\n' + changelogEntry + '\n' + after);
+      const changelog = readFileSync(changelogPath, "utf-8");
+      if (changelog.startsWith("## [")) {
+        writeFileSync(changelogPath, changelogEntry + "\n\n" + changelog);
       } else {
-        writeFileSync(changelogPath, changelog.trimEnd() + '\n\n' + changelogEntry + '\n');
+        const marker = "\n## [";
+        const idx = changelog.indexOf(marker);
+        if (idx !== -1) {
+          const before = changelog.slice(0, idx);
+          const after = changelog.slice(idx);
+          writeFileSync(changelogPath, before + "\n\n" + changelogEntry + "\n" + after);
+        } else {
+          writeFileSync(changelogPath, changelog.trimEnd() + "\n\n" + changelogEntry + "\n");
+        }
       }
     } else {
-      writeFileSync(changelogPath, '\n\n' + changelogEntry + '\n');
+      writeFileSync(changelogPath, changelogEntry + "\n");
     }
     ok('CHANGELOG.md');
 
