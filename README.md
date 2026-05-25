@@ -46,13 +46,11 @@
 </p>
 
 - **Browse & search** — Find addons on CurseForge by name, category, or game version
+- **Category sidebar** — Browse 60+ CurseForge categories with multiple sort options
 - **One-click install** — Install directly to your `Interface/AddOns` folder
 - **Version-aware filtering** — View only compatible files per WoW patch
-- **External addon detection (WIP)** — Scans your AddOns folder and matches addons to CurseForge
-- **Batch sync (WIP)** — Match and import multiple external addons at once
-- **ZIP import** — Drag-and-drop archive imports extracted by the Rust backend
-- **Smart upgrades** — Downloads new versions before removing old files (safe rollback)
-- **Automatic updates** — Built-in Tauri updater keeps the app current
+- **External addon detection** — Scans for unmanaged addons and matches them to CurseForge
+- **Batch sync** — Match and adopt multiple external addons at once
 
 ## How It's Different
 
@@ -63,6 +61,10 @@ Built on [**Tauri v2**](https://v2.tauri.app/) with a Rust backend and a compile
 ### No Account, No Ads, No Tracking
 
 Connects directly to the **CurseForge Core API v2** (official API) using a bundled key. No CurseForge account needed. No ads. No telemetry. No background processes. Just launch and go.
+
+### CurseForge Downloads
+
+By default, installing opens the CurseForge download page directly in your browser, instantly starting the download — supporting addon authors by counting your downloads. WowAdder watches your downloads folder and imports the ZIP automatically. When you turn off "Support Developers" in Settings, installations use the CurseForge edge CDN directly instead for a faster experience and single click installation.
 
 ### Smart Addon Detection
 
@@ -80,9 +82,9 @@ Handles addons that span multiple folders (some addons ship as several separate 
 
 Import addons from `.zip` files directly — pick the archive and it's extracted to your AddOns folder via the Rust backend, then detected automatically.
 
-### CurseForge CDN Downloads
+### Customizable Themes
 
-Downloads files directly from the CurseForge edge CDN for maximum speed. Falls back to the API download URL if the CDN path is unavailable.
+Choose from 5 color schemes inspired by World of Warcraft: Classic (gold), Emerald (green), Crimson (red), Night Elf (purple), and Frost (blue). Switch themes instantly from the Settings page.
 
 ---
 
@@ -106,7 +108,7 @@ bun run sync-version
 bun tauri build
 ```
 
-Requires [Bun](https://bun.sh/), [Rust](https://www.rust-lang.org/), and the Tauri v2 CLI.
+Requires [Bun](https://bun.sh/) and [Rust](https://www.rust-lang.org/).
 
 ---
 
@@ -116,9 +118,11 @@ Requires [Bun](https://bun.sh/), [Rust](https://www.rust-lang.org/), and the Tau
 | ----------------- | -------------------------------------------------------------- |
 | Desktop Framework | [Tauri v2](https://v2.tauri.app/) (Rust backend)               |
 | Frontend          | React 19 + TypeScript                                          |
+| Data Fetching     | TanStack Query v5                                              |
 | Styling           | Tailwind CSS v4                                                |
 | API Client        | [`curseforge-v2`](https://www.npmjs.com/package/curseforge-v2) |
 | Routing           | React Router v7                                                |
+| Markdown          | react-markdown                                                 |
 | Build Tool        | Vite 7                                                         |
 | Package Manager   | Bun                                                            |
 | Installer         | WiX MSI                                                        |
