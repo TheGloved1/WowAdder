@@ -1,7 +1,6 @@
 import { check } from '@tauri-apps/plugin-updater';
 import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import ParmajawnEasterEgg from './ParmajawnEasterEgg';
 
 export default function Layout() {
   const location = useLocation();
@@ -135,7 +134,6 @@ export default function Layout() {
       <main className='flex-1'>
         <Outlet />
       </main>
-      <ParmajawnEasterEgg />
     </div>
   );
 }

@@ -26,12 +26,6 @@ import {
 import { loadPrefs, savePrefs } from '../services/preferences';
 import type { CF2File, CF2Pagination } from '../types/curseforge';
 
-function maybeParmajawn() {
-  if (Math.random() < 0.02) {
-    window.dispatchEvent(new CustomEvent('parmajawn'));
-  }
-}
-
 const PAGE_SIZE = 10;
 
 export default function AddonDetailPage() {
@@ -172,7 +166,6 @@ export default function AddonDetailPage() {
         file.fileName,
       );
       console.log('[DEBUG] installAddon completed successfully');
-      maybeParmajawn();
       setInstalledInfo(isAddonInstalled(addon.id));
     } catch (err) {
       console.log('[DEBUG] installAddon threw an error:', err);
