@@ -1,3 +1,14 @@
+## [0.3.12] - 2026-05-25
+
+### Added
+
+- **backend**: add download watching infrastructure
+- **ui**: add download dialog and watch folder settings
+
+### Changed
+
+- run Prettier across source files
+
 ## [0.3.11] - 2026-05-25
 
 ### Added
