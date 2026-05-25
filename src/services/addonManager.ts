@@ -2,9 +2,10 @@ import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { exists, mkdir, readDir, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs';
 import { load } from '@tauri-apps/plugin-store';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import type { CF2Addon } from '../types/curseforge';
 import { getMod, getModFileDownloadUrl, searchMods } from './curseforge';
-import { loadPrefs } from './preferences';
+import { loadPrefs, savePrefs } from './preferences';
 
 const STORE_FILE = 'wowadder-config.json';
 
@@ -171,37 +172,25 @@ export async function installAddon(
     // Install new version first, then remove old folders (safe rollback)
   }
 
-  let downloadUrl: string | undefined | null = null;
-
-  const prefs = loadPrefs();
-
-  if (prefs.supportDevs) {
-    // Support developers: call CurseForge's download tracking endpoint first.
-    // This registers the download for developer revenue.
-    console.log('[DEBUG installAddon] Calling getModFileDownloadUrl API for download tracking...');
+  let downloadUrl: string | undefined | null = fileDownloadUrl;
+  if (!downloadUrl) {
+    console.log('[DEBUG installAddon] No fileDownloadUrl, trying CDN construct with fileName:', fileName);
+    if (fileName) {
+      const chunk1 = Math.floor(fileId / 1000);
+      const chunk2 = fileId % 1000;
+      downloadUrl = `https://edge.forgecdn.net/files/${chunk1}/${chunk2}/${fileName}`;
+      console.log('[DEBUG installAddon] Constructed CDN URL:', downloadUrl);
+    }
+  }
+  if (!downloadUrl) {
+    console.log('[DEBUG installAddon] CDN construct failed, calling getModFileDownloadUrl API...');
     try {
       downloadUrl = await getModFileDownloadUrl(addon.id, fileId);
       console.log('[DEBUG installAddon] getModFileDownloadUrl returned:', downloadUrl);
     } catch (apiErr) {
-      console.log('[DEBUG installAddon] getModFileDownloadUrl failed, falling back:', apiErr);
+      console.log('[DEBUG installAddon] getModFileDownloadUrl threw:', apiErr);
     }
   }
-
-  // Fall back to the pre-resolved download URL from the file listing response
-  if (!downloadUrl && fileDownloadUrl) {
-    console.log('[DEBUG installAddon] Using fileDownloadUrl:', fileDownloadUrl);
-    downloadUrl = fileDownloadUrl;
-  }
-
-  // Last resort — construct CDN URL manually from known path patterns
-  if (!downloadUrl && fileName) {
-    console.log('[DEBUG installAddon] Constructing CDN URL from fileId and fileName...');
-    const chunk1 = Math.floor(fileId / 1000);
-    const chunk2 = fileId % 1000;
-    downloadUrl = `https://edge.forgecdn.net/files/${chunk1}/${chunk2}/${fileName}`;
-    console.log('[DEBUG installAddon] Constructed CDN URL:', downloadUrl);
-  }
-
   if (!downloadUrl) {
     throw new Error(`Could not get download URL for file ${fileId} (addon ${addon.id}).`);
   }
@@ -495,4 +484,152 @@ export async function importZip(): Promise<string[]> {
   });
   const parsed = JSON.parse(result);
   return parsed.entries as string[];
+}
+
+export async function getDefaultDownloadsFolder(): Promise<string | null> {
+  try {
+    return await invoke<string>('get_downloads_dir');
+  } catch {
+    return null;
+  }
+}
+
+export function getWatchFolders(): string[] {
+  return loadPrefs().downloadWatchFolders;
+}
+
+export function addWatchFolder(path: string): void {
+  const prefs = loadPrefs();
+  if (!prefs.downloadWatchFolders.includes(path)) {
+    savePrefs({ downloadWatchFolders: [...prefs.downloadWatchFolders, path] });
+  }
+}
+
+export function removeWatchFolder(path: string): void {
+  const prefs = loadPrefs();
+  savePrefs({ downloadWatchFolders: prefs.downloadWatchFolders.filter((f) => f !== path) });
+}
+
+export async function openCurseForgeDownloadPage(slug: string, fileId: number): Promise<void> {
+  await openUrl(`https://www.curseforge.com/wow/addons/${slug}/download/${fileId}`);
+}
+
+export async function watchForDownload(
+  fileName: string,
+  folders: string[],
+  signal?: AbortSignal,
+): Promise<string | null> {
+  const POLL_INTERVAL = 500;
+  const MAX_WAIT = 5 * 60 * 1000;
+  const STABILIZE_DELAY = 1500;
+
+  const start = Date.now();
+
+  while (!signal?.aborted && Date.now() - start < MAX_WAIT) {
+    await new Promise<void>((resolve) => {
+      const t = setTimeout(resolve, POLL_INTERVAL);
+      if (signal) {
+        signal.addEventListener(
+          'abort',
+          () => {
+            clearTimeout(t);
+            resolve();
+          },
+          { once: true },
+        );
+      }
+    });
+
+    if (signal?.aborted) return null;
+
+    for (const folder of folders) {
+      try {
+        const fullPath = `${folder.replace(/\\+$/, '').replace(/\/+$/, '')}/${fileName}`;
+        if (await exists(fullPath)) {
+          await new Promise<void>((resolve) => {
+            const t = setTimeout(resolve, STABILIZE_DELAY);
+            if (signal) {
+              signal.addEventListener(
+                'abort',
+                () => {
+                  clearTimeout(t);
+                  resolve();
+                },
+                { once: true },
+              );
+            }
+          });
+          if (signal?.aborted) return null;
+          return fullPath;
+        }
+      } catch {
+        // folder may not exist or be unreadable
+      }
+    }
+  }
+
+  return null;
+}
+
+export async function installFromZip(
+  zipPath: string,
+  addon: CF2Addon,
+  fileId: number,
+  folderName: string,
+  version: string | null,
+  deleteZip: boolean,
+): Promise<string[]> {
+  const folder = await getAddonsFolder();
+  if (!folder) throw new Error('Addons folder not configured');
+
+  const db = await loadDb();
+  if (!db) throw new Error('Could not load database');
+
+  const result = await invoke<string>('import_zip', {
+    zipPath,
+    targetDir: folder,
+  });
+  const parsed = JSON.parse(result);
+  const entries: string[] = parsed.entries && Array.isArray(parsed.entries) && parsed.entries.length > 0 ?
+    (parsed.entries as string[])
+  : [folderName];
+
+  const existing = db.installed.find((a) => a.modId === addon.id);
+  if (existing) {
+    const oldFolders = existing.folderNames?.length ? existing.folderNames : [existing.folderName];
+    for (const name of oldFolders) {
+      const dir = `${folder}/${name}`;
+      if (await exists(dir)) {
+        await remove(dir, { recursive: true });
+      }
+    }
+    existing.folderName = entries[0];
+    existing.folderNames = entries;
+    existing.installedFileId = fileId;
+    existing.installedVersion = version;
+    existing.installedAt = new Date().toISOString();
+  } else {
+    db.installed.push({
+      modId: addon.id,
+      name: addon.name,
+      slug: addon.slug,
+      folderName: entries[0],
+      folderNames: entries,
+      installedFileId: fileId,
+      installedVersion: version,
+      installedAt: new Date().toISOString(),
+    });
+  }
+
+  await saveDb(db);
+
+  if (deleteZip) {
+    try {
+      await remove(zipPath);
+    } catch {
+      // best-effort cleanup
+    }
+  }
+
+  return entries;
 }

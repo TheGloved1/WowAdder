@@ -99,6 +99,13 @@ fn import_zip(
     Ok(result)
 }
 
+#[tauri::command]
+fn get_downloads_dir() -> Result<String, String> {
+    dirs::download_dir()
+        .map(|p| p.to_string_lossy().to_string())
+        .ok_or_else(|| "Could not determine downloads directory".to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -107,7 +114,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .invoke_handler(tauri::generate_handler![install_addon, import_zip])
+        .invoke_handler(tauri::generate_handler![install_addon, import_zip, get_downloads_dir])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
