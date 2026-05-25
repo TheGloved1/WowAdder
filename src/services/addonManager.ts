@@ -4,6 +4,7 @@ import { exists, mkdir, readDir, readTextFile, remove, writeTextFile } from '@ta
 import { load } from '@tauri-apps/plugin-store';
 import type { CF2Addon } from '../types/curseforge';
 import { getMod, getModFileDownloadUrl, searchMods } from './curseforge';
+import { loadPrefs } from './preferences';
 
 const STORE_FILE = 'wowadder-config.json';
 
@@ -170,25 +171,37 @@ export async function installAddon(
     // Install new version first, then remove old folders (safe rollback)
   }
 
-  let downloadUrl: string | undefined | null = fileDownloadUrl;
-  if (!downloadUrl) {
-    console.log('[DEBUG installAddon] No fileDownloadUrl, trying CDN construct with fileName:', fileName);
-    if (fileName) {
-      const chunk1 = Math.floor(fileId / 1000);
-      const chunk2 = fileId % 1000;
-      downloadUrl = `https://edge.forgecdn.net/files/${chunk1}/${chunk2}/${fileName}`;
-      console.log('[DEBUG installAddon] Constructed CDN URL:', downloadUrl);
-    }
-  }
-  if (!downloadUrl) {
-    console.log('[DEBUG installAddon] CDN construct failed, calling getModFileDownloadUrl API...');
+  let downloadUrl: string | undefined | null = null;
+
+  const prefs = loadPrefs();
+
+  if (prefs.supportDevs) {
+    // Support developers: call CurseForge's download tracking endpoint first.
+    // This registers the download for developer revenue.
+    console.log('[DEBUG installAddon] Calling getModFileDownloadUrl API for download tracking...');
     try {
       downloadUrl = await getModFileDownloadUrl(addon.id, fileId);
       console.log('[DEBUG installAddon] getModFileDownloadUrl returned:', downloadUrl);
     } catch (apiErr) {
-      console.log('[DEBUG installAddon] getModFileDownloadUrl threw:', apiErr);
+      console.log('[DEBUG installAddon] getModFileDownloadUrl failed, falling back:', apiErr);
     }
   }
+
+  // Fall back to the pre-resolved download URL from the file listing response
+  if (!downloadUrl && fileDownloadUrl) {
+    console.log('[DEBUG installAddon] Using fileDownloadUrl:', fileDownloadUrl);
+    downloadUrl = fileDownloadUrl;
+  }
+
+  // Last resort — construct CDN URL manually from known path patterns
+  if (!downloadUrl && fileName) {
+    console.log('[DEBUG installAddon] Constructing CDN URL from fileId and fileName...');
+    const chunk1 = Math.floor(fileId / 1000);
+    const chunk2 = fileId % 1000;
+    downloadUrl = `https://edge.forgecdn.net/files/${chunk1}/${chunk2}/${fileName}`;
+    console.log('[DEBUG installAddon] Constructed CDN URL:', downloadUrl);
+  }
+
   if (!downloadUrl) {
     throw new Error(`Could not get download URL for file ${fileId} (addon ${addon.id}).`);
   }

@@ -51,11 +51,18 @@ export default function SettingsPage() {
   const prefs = loadPrefs();
   const [colorScheme, setColorScheme] = useState<ColorScheme>(prefs.colorScheme);
   const [changelogOpen, setChangelogOpen] = useState(false);
+  const [supportDevs, setSupportDevs] = useState(prefs.supportDevs);
 
   function handleSchemeChange(scheme: ColorScheme) {
     setColorScheme(scheme);
     document.documentElement.setAttribute('data-theme', scheme);
     savePrefs({ colorScheme: scheme });
+  }
+
+  function handleSupportDevsToggle() {
+    const next = !supportDevs;
+    setSupportDevs(next);
+    savePrefs({ supportDevs: next });
   }
 
   return (
@@ -99,6 +106,35 @@ export default function SettingsPage() {
             );
           })}
         </div>
+
+        <WoWDivider className='my-6' />
+
+        <h2 className='font-wow-heading text-wow-gold mb-1 text-lg tracking-wider'>Support Developers</h2>
+        <p className='text-wow-text-dim mb-4 text-sm'>
+          When enabled, every install requests a download URL through CurseForge's API, which counts towards developer
+          revenue. Disabling skips this step and uses a direct CDN link, which is faster but does not support addon authors.
+        </p>
+        <label className='flex cursor-pointer items-center gap-3'>
+          <button
+            role='switch'
+            aria-checked={supportDevs}
+            onClick={handleSupportDevsToggle}
+            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors duration-200 ${
+              supportDevs ?
+                'border-wow-border-gold-bright bg-wow-gold shadow-[0_0_6px_rgba(251,191,36,0.15)]'
+              : 'border-wow-border-light bg-wow-bg'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-wow-panel transition-transform duration-200 ${
+                supportDevs ? 'translate-x-5.5' : 'translate-x-1'
+              }`}
+            />
+          </button>
+          <span className={`font-wow-heading text-sm tracking-wider ${supportDevs ? 'text-wow-gold' : 'text-wow-text-dim'}`}>
+            {supportDevs ? 'Supporting developers' : 'Not supporting developers'}
+          </span>
+        </label>
 
         <WoWDivider className='my-6' />
 

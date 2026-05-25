@@ -9,6 +9,7 @@ interface Preferences {
   pageSize: number;
   sortOption: SortOption;
   colorScheme: ColorScheme;
+  supportDevs: boolean;
 }
 
 const DEFAULTS: Preferences = {
@@ -16,6 +17,7 @@ const DEFAULTS: Preferences = {
   pageSize: 20,
   sortOption: { label: 'Most Downloads', field: 6, order: 'desc' },
   colorScheme: 'default',
+  supportDevs: false,
 };
 
 export function loadPrefs(): Preferences {
