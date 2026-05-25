@@ -1,8 +1,5 @@
 # Changelog
 
-
-
-
 ## [0.3.5] - 2026-05-25
 
 ### Fixed
@@ -10,13 +7,11 @@
 - **release**: update changelog entry and add missing tauri config files
 - **hooks**: improve UX by adding placeholderData to keep previous data while fetching
 
-
 ## [0.3.4] - 2026-05-25
 
 ### Changed
 
 - **release**: add helper function for "no" answers and standardize prompts
-
 
 ## [0.3.3] - 2026-05-25
 
