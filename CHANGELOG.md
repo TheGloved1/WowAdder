@@ -1,3 +1,9 @@
+## [0.3.10] - 2026-05-25
+
+### Added
+
+- **settings**: add GitHub link to settings page
+
 ## [0.3.9] - 2026-05-25
 
 ### Fixed
