@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 
 import { execSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { stdin as input, stdout as output } from 'node:process';
 import * as readline from 'node:readline/promises';
 
@@ -93,26 +94,156 @@ function generateChangelog(next: string): { changelogEntry: string; releaseEntry
   return { changelogEntry, releaseEntry };
 }
 
+// ---------------------------------------------------------------------------
+// Undo log types and helpers
+// ---------------------------------------------------------------------------
+
+interface UndoLog {
+  version: { from: string; to: string };
+  timestamp: string;
+  branch: string;
+  commit: string;
+  tag: string;
+  files: Record<string, string | null>;
+  created: string[];
+}
+
+const UNDO_DIR = '.release-undo';
+
+function captureFileSnapshot(files: string[]): Record<string, string | null> {
+  const snapshot: Record<string, string | null> = {};
+  for (const file of files) {
+    snapshot[file] = existsSync(file) ? readFileSync(file, 'utf-8') : null;
+  }
+  return snapshot;
+}
+
+function saveUndoLog(log: UndoLog) {
+  if (!existsSync(UNDO_DIR)) mkdirSync(UNDO_DIR, { recursive: true });
+  writeFileSync(join(UNDO_DIR, `v${log.version.to}.json`), JSON.stringify(log, null, 2) + '\n');
+}
+
+function listUndoLogs(): { version: string; path: string }[] {
+  if (!existsSync(UNDO_DIR)) return [];
+  return readdirSync(UNDO_DIR)
+    .filter((f: string) => f.endsWith('.json'))
+    .map((f: string) => ({ version: f.replace(/^v/, '').replace(/\.json$/, ''), path: join(UNDO_DIR, f) }))
+    .sort((a: { version: string }, b: { version: string }) => {
+      const parse = (v: string) => v.split('.').map(Number);
+      const [am, an, ap] = parse(a.version);
+      const [bm, bn, bp] = parse(b.version);
+      return am - bm || an - bn || ap - bp;
+    })
+    .reverse();
+}
+
+function restoreFiles(log: UndoLog) {
+  const changed: string[] = [];
+  for (const [file, content] of Object.entries(log.files)) {
+    if (content === null) {
+      if (existsSync(file)) {
+        rmSync(file);
+        changed.push(file);
+      }
+    } else {
+      writeFileSync(file, content);
+      changed.push(file);
+    }
+  }
+  for (const file of log.created) {
+    if (existsSync(file)) {
+      rmSync(file);
+    }
+  }
+  return changed;
+}
+
+async function undoRelease() {
+  const logs = listUndoLogs();
+  if (logs.length === 0) fail('No undo logs found.');
+
+  console.log(`${BLUE}Available undo logs:${NC}`);
+  logs.forEach((log, i) => console.log(`  ${i + 1}. v${log.version}`));
+
+  const choice = await ask(`\nSelect version to undo (1-${logs.length}) [1]: `) || '1';
+  const idx = Math.max(0, Math.min(logs.length - 1, parseInt(choice, 10) - 1)) || 0;
+  const selected = logs[idx];
+
+  const log: UndoLog = JSON.parse(readFileSync(selected.path, 'utf-8'));
+  console.log(`\nWill undo release v${log.version.to}:`);
+  console.log(`  commit : ${log.commit.substring(0, 7)}`);
+  console.log(`  tag    : ${log.tag}`);
+  console.log(`  branch : ${log.branch}`);
+  console.log(`  files  : ${Object.keys(log.files).join(', ')}`);
+
+  const proceed = await ask(`\nProceed? This will hard-reset and force-push. (y/N) `);
+  if (proceed.toLowerCase() !== 'y') { console.log('Aborted.'); process.exit(0); }
+
+  // Verify we're on the right branch
+  const branch = execSync('git branch --show-current', { encoding: 'utf-8' }).trim();
+  if (branch !== log.branch) {
+    const sw = await ask(`  Not on '${log.branch}' (on '${branch}'). Switch? (y/N) `);
+    if (sw.toLowerCase() !== 'y') { console.log('Aborted.'); process.exit(0); }
+    execSync(`git checkout ${log.branch}`, { encoding: 'utf-8' });
+  }
+
+  step('Checking out release commit');
+  execSync(`git checkout ${log.commit}`, { encoding: 'utf-8' });
+
+  step('Restoring file snapshots');
+  const changed = restoreFiles(log);
+  changed.forEach((f) => ok(`Restored ${f}`));
+
+  step('Creating revert commit');
+  execSync(`git add ${changed.join(' ')}`, { encoding: 'utf-8' });
+  const changedList = changed.map((f) => `  Revert ${f}`).join('\n');
+  execSync(`git commit -m "revert: undo release v${log.version.to}\n\n${changedList}"`, { encoding: 'utf-8' });
+
+  step(`Deleting tag ${log.tag}`);
+  execSync(`git tag -d "${log.tag}"`, { encoding: 'utf-8' });
+
+  step(`Pushing revert to origin/${log.branch}`);
+  execSync(`git push origin ${log.branch}`, { encoding: 'utf-8' });
+  execSync(`git push origin :refs/tags/${log.tag}`, { encoding: 'utf-8' });
+  ok('Pushed');
+
+  // Clean up undo log after successful revert
+  rmSync(selected.path);
+  ok(`Cleaned up ${selected.path}`);
+
+  console.log(`\n${GREEN}${'='.repeat(40)}${NC}`);
+  console.log(`${GREEN}  Undid release v${log.version.to}${NC}`);
+  console.log(`${GREEN}${'='.repeat(40)}${NC}\n`);
+}
+
 async function main() {
   // ---------------------------------------------------------------------------
   // Parse argument
   // ---------------------------------------------------------------------------
 
   const args = process.argv.slice(2);
+  const isUndo = args.includes('--undo');
   const skipChangelog = args.includes('--no-changelog');
   const changelogOnly = args.includes('changelog');
-  const arg = args.find((a) => a !== '--no-changelog' && a !== 'changelog') ?? '';
+  const arg = args.find((a) => a !== '--no-changelog' && a !== 'changelog' && a !== '--undo') ?? '';
+
+  if (isUndo) {
+    await undoRelease();
+    rl.close();
+    process.exit(0);
+  }
   if (!arg && !changelogOnly) {
     console.log(`
-Usage: ./scripts/release.ts [major|minor|patch|x.y.z|changelog]
+Usage: ./scripts/release.ts [major|minor|patch|x.y.z|changelog|--undo]
 
 Examples:
-  ./scripts/release.ts patch      # 0.1.8 -> 0.1.9
-  ./scripts/release.ts minor      # 0.1.8 -> 0.2.0
-  ./scripts/release.ts major      # 0.1.8 -> 1.0.0
-  ./scripts/release.ts 0.2.0      # explicit version
-  ./scripts/release.ts changelog        # preview changelog for next release
-  ./scripts/release.ts changelog patch  # preview changelog with a patch bump
+  ./scripts/release.ts patch       # 0.1.8 -> 0.1.9
+  ./scripts/release.ts minor       # 0.1.8 -> 0.2.0
+  ./scripts/release.ts major       # 0.1.8 -> 1.0.0
+  ./scripts/release.ts 0.2.0       # explicit version
+  ./scripts/release.ts changelog         # preview changelog for next release
+  ./scripts/release.ts changelog patch   # preview changelog with a patch bump
+  ./scripts/release.ts --undo            # revert the most recent release
 `);
     process.exit(1);
   }
@@ -210,6 +341,19 @@ Examples:
   }
 
   // ---------------------------------------------------------------------------
+  // Snapshot files before any changes (for undo log)
+  // ---------------------------------------------------------------------------
+
+  const snapshotFiles = [
+    'package.json',
+    'src-tauri/Cargo.toml',
+    'src-tauri/Cargo.lock',
+    'src-tauri/tauri.conf.json',
+    ...(skipChangelog ? [] : ['CHANGELOG.md']),
+  ];
+  const fileSnapshot = captureFileSnapshot(snapshotFiles);
+
+  // ---------------------------------------------------------------------------
   // Bump versions
   // ---------------------------------------------------------------------------
 
@@ -301,6 +445,20 @@ Edit CHANGELOG.md manually, then run:
   execSync(`git commit -m "chore: release v${next}"`, { encoding: 'utf-8' });
   ok('Committed');
 
+  step('Saving undo log');
+  const commitHash = execSync('git rev-parse HEAD', { encoding: 'utf-8' }).trim();
+  const createdFiles: string[] = skipChangelog ? [] : [`changelogs/v${next}.md`];
+  saveUndoLog({
+    version: { from: current, to: next },
+    timestamp: new Date().toISOString(),
+    branch,
+    commit: commitHash,
+    tag: `v${next}`,
+    files: fileSnapshot,
+    created: createdFiles,
+  });
+  ok(`.release-undo/v${next}.json`);
+
   step(`Creating tag v${next}`);
   execSync(`git tag -a "v${next}" -m "Release v${next}"`, {
     encoding: 'utf-8',
@@ -325,8 +483,7 @@ Edit CHANGELOG.md manually, then run:
   console.log('Next step:');
   console.log('  CI will build and create a GitHub release.\n');
   console.log(`To undo this release:`);
-  console.log(`  git tag -d v${next} && git reset --soft HEAD~1`);
-  console.log(`  git push origin :refs/tags/v${next}`);
+  console.log(`  ./scripts/release.ts --undo`);
 }
 
 main()
