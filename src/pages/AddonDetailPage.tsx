@@ -1,4 +1,5 @@
 import { listen } from '@tauri-apps/api/event';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { open } from '@tauri-apps/plugin-dialog';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -263,6 +264,12 @@ export default function AddonDetailPage() {
     if (path) {
       setFoundZipPath(path);
       setDialogPhase('found');
+      const win = getCurrentWindow();
+      await win.setAlwaysOnTop(true);
+      await win.show();
+      await win.unminimize();
+      await win.setFocus();
+      await win.setAlwaysOnTop(false);
     } else if (!controller.signal.aborted) {
       setDialogError('Download was not detected within 5 minutes. Try again.');
       setDialogPhase('error');
