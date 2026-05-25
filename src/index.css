@@ -83,9 +83,19 @@
   --color-wow-text-muted: #38bdf8;
 }
 
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+html {
+  background-color: var(--color-wow-bg);
+}
+
 body {
   font-family: var(--font-wow-body);
-  background-color: var(--color-wow-bg);
   background-image:
     repeating-linear-gradient(
       0deg,
@@ -102,5 +112,33 @@ body {
       rgba(255, 255, 255, 0.007) 8px
     );
   color: var(--color-wow-text);
-  min-height: 100vh;
+}
+
+#root {
+  height: 100%;
+  overflow-y: scroll;
+  scrollbar-width: thin;
+}
+
+#root::-webkit-scrollbar {
+  width: 6px;
+}
+
+#root::-webkit-scrollbar-track {
+  background: var(--color-wow-bg);
+}
+
+#root::-webkit-scrollbar-thumb {
+  background: rgba(120, 113, 108, 0.4);
+  border-radius: 4px;
+}
+
+#root::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 113, 108, 0.6);
+}
+
+@supports (scrollbar-color: auto) {
+  #root {
+    scrollbar-color: rgba(120, 113, 108, 0.4) var(--color-wow-bg);
+  }
 }
