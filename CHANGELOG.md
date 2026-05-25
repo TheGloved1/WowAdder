@@ -1,3 +1,9 @@
+## [0.3.16] - 2026-05-25
+
+### Other
+
+- enable supportDevs by default
+
 ## [0.3.15] - 2026-05-25
 
 ### Added
