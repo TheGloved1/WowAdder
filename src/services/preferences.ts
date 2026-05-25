@@ -19,7 +19,7 @@ const DEFAULTS: Preferences = {
   pageSize: 20,
   sortOption: { label: 'Most Downloads', field: 6, order: 'desc' },
   colorScheme: 'default',
-  supportDevs: false,
+  supportDevs: true,
   downloadWatchFolders: [],
   deleteZipAfterInstall: true,
 };
