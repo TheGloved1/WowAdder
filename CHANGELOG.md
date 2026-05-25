@@ -8,6 +8,17 @@
 
 - **changelog**: remove redundant blank lines
 
+
+## [0.3.7] - 2026-05-25
+
+### Added
+
+- add changelog preview command, auto-push release, and in-app changelog viewer
+
+### Changed
+
+- **css**: restructure global layout and add custom scrollbar styles
+
 ## [0.3.5] - 2026-05-25
 
 ### Fixed
