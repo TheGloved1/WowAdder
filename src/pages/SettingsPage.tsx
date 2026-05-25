@@ -1,6 +1,6 @@
+import { open } from '@tauri-apps/plugin-dialog';
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { open } from '@tauri-apps/plugin-dialog';
 import changelogRaw from '../../CHANGELOG.md?raw';
 import { version } from '../../package.json';
 import WoWDivider from '../components/wow/WoWDivider';
@@ -182,7 +182,10 @@ export default function SettingsPage() {
                 {downloadWatchFolders.length === 0 ?
                   <p className='text-wow-text-muted text-xs italic'>No folders added yet. Add one or more below.</p>
                 : downloadWatchFolders.map((f) => (
-                    <div key={f} className='bg-wow-bg border-wow-border-light flex items-center justify-between rounded-sm border px-2 py-1.5'>
+                    <div
+                      key={f}
+                      className='bg-wow-bg border-wow-border-light flex items-center justify-between rounded-sm border px-2 py-1.5'
+                    >
                       <span className='text-wow-text-dim truncate text-xs'>{f}</span>
                       <button
                         onClick={() => handleRemoveWatchFolder(f)}
@@ -224,7 +227,9 @@ export default function SettingsPage() {
                   }`}
                 />
               </button>
-              <span className={`font-wow-heading text-sm tracking-wider ${deleteZipAfterInstall ? 'text-wow-gold' : 'text-wow-text-dim'}`}>
+              <span
+                className={`font-wow-heading text-sm tracking-wider ${deleteZipAfterInstall ? 'text-wow-gold' : 'text-wow-text-dim'}`}
+              >
                 {deleteZipAfterInstall ? 'Deleting ZIP after install' : 'Keeping ZIP after install'}
               </span>
             </label>

@@ -1,6 +1,6 @@
 [package]
 name = "WowAdder"
-version = "0.3.14"
+version = "0.3.13"
 description = "A Tauri App for managing World of Warcraft addons"
 authors = ["TheGloved1"]
 edition = "2021"
@@ -32,6 +32,6 @@ incremental = true # Compile your binary in smaller steps.
 [profile.release]
 strip = true
 lto = true
-opt-level = "3" # Optimize for speed.
+opt-level = 3 # Optimize for speed.
 panic = "abort" # Higher performance by disabling panic handlers.
 

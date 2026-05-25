@@ -1,8 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { exists, mkdir, readDir, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs';
-import { load } from '@tauri-apps/plugin-store';
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { load } from '@tauri-apps/plugin-store';
 import type { CF2Addon } from '../types/curseforge';
 import { getMod, getModFileDownloadUrl, searchMods } from './curseforge';
 import { loadPrefs, savePrefs } from './preferences';
@@ -514,11 +514,7 @@ export async function openCurseForgeDownloadPage(slug: string, fileId: number): 
   await openUrl(`https://www.curseforge.com/wow/addons/${slug}/download/${fileId}`);
 }
 
-export async function watchForDownload(
-  fileName: string,
-  folders: string[],
-  signal?: AbortSignal,
-): Promise<string | null> {
+export async function watchForDownload(fileName: string, folders: string[], signal?: AbortSignal): Promise<string | null> {
   const POLL_INTERVAL = 500;
   const MAX_WAIT = 5 * 60 * 1000;
   const STABILIZE_DELAY = 1500;
@@ -590,9 +586,10 @@ export async function installFromZip(
     targetDir: folder,
   });
   const parsed = JSON.parse(result);
-  const entries: string[] = parsed.entries && Array.isArray(parsed.entries) && parsed.entries.length > 0 ?
-    (parsed.entries as string[])
-  : [folderName];
+  const entries: string[] =
+    parsed.entries && Array.isArray(parsed.entries) && parsed.entries.length > 0 ?
+      (parsed.entries as string[])
+    : [folderName];
 
   const existing = db.installed.find((a) => a.modId === addon.id);
   if (existing) {

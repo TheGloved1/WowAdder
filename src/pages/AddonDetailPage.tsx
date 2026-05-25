@@ -578,9 +578,8 @@ export default function AddonDetailPage() {
             {dialogPhase === 'setup' && (
               <>
                 <p className='text-wow-text-dim mb-4 text-sm leading-relaxed'>
-                  Open the CurseForge download page for{' '}
-                  <span className='text-wow-gold'>{dialogFile?.displayName}</span> in your browser. When the download
-                  finishes, WowAdder will detect it automatically.
+                  Open the CurseForge download page for <span className='text-wow-gold'>{dialogFile?.displayName}</span> in
+                  your browser. When the download finishes, WowAdder will detect it automatically.
                 </p>
 
                 <div className='mb-4'>
@@ -589,7 +588,10 @@ export default function AddonDetailPage() {
                     {dialogFolders.length === 0 ?
                       <p className='text-wow-text-muted text-xs italic'>No folders added yet. Add one below.</p>
                     : dialogFolders.map((f) => (
-                        <div key={f} className='bg-wow-bg border-wow-border-light flex items-center justify-between rounded-sm border px-2 py-1.5'>
+                        <div
+                          key={f}
+                          className='bg-wow-bg border-wow-border-light flex items-center justify-between rounded-sm border px-2 py-1.5'
+                        >
                           <span className='text-wow-text-dim truncate text-xs'>{f}</span>
                           <button
                             onClick={() => handleRemoveFolder(f)}
@@ -679,7 +681,12 @@ export default function AddonDetailPage() {
             {dialogPhase === 'found' && (
               <>
                 <div className='bg-wow-quality-purple/10 border-wow-quality-purple/30 mb-4 flex items-center gap-2 rounded-sm border p-3'>
-                  <svg className='text-wow-quality-purple h-5 w-5 shrink-0' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                  <svg
+                    className='text-wow-quality-purple h-5 w-5 shrink-0'
+                    fill='none'
+                    viewBox='0 0 24 24'
+                    stroke='currentColor'
+                  >
                     <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M5 13l4 4L19 7' />
                   </svg>
                   <span className='text-wow-text text-sm'>
@@ -727,7 +734,14 @@ export default function AddonDetailPage() {
                   <span>{dialogError}</span>
                 </div>
                 <div className='flex items-center gap-2'>
-                  <WoWButton variant='primary' onClick={() => { setDialogPhase('setup'); setDialogError(null); }} className='flex-1'>
+                  <WoWButton
+                    variant='primary'
+                    onClick={() => {
+                      setDialogPhase('setup');
+                      setDialogError(null);
+                    }}
+                    className='flex-1'
+                  >
                     Try Again
                   </WoWButton>
                   <WoWButton variant='ghost' onClick={closeDialog}>
