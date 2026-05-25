@@ -151,11 +151,14 @@ Examples:
   } else {
     step("Generating changelog");
 
+    // Fetch all tags from remote so we can find the last release tag
+    execSync("git fetch --tags --force", { stdio: "ignore" });
+
     let lastTag = "";
     try {
-      lastTag = execSync("git describe --tags --abbrev=0", {
+      lastTag = execSync('git tag --list "v*" --sort=-creatordate', {
         encoding: "utf-8",
-      }).trim();
+      }).trim().split("\n")[0] ?? "";
     } catch {
       // no prior tags
     }
