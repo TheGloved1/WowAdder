@@ -1,3 +1,9 @@
+## [0.3.13] - 2026-05-25
+
+### Added
+
+- bring window to foreground when download is detected
+
 ## [0.3.12] - 2026-05-25
 
 ### Added
