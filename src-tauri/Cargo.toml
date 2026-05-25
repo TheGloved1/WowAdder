@@ -32,6 +32,6 @@ incremental = true # Compile your binary in smaller steps.
 [profile.release]
 strip = true
 lto = true
-opt-level = 3 # Optimize for speed.
+opt-level = "s" # Optimize for speed.
 panic = "abort" # Higher performance by disabling panic handlers.
 

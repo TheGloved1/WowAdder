@@ -1,4 +1,4 @@
-import { openPath } from '@tauri-apps/plugin-opener';
+import { invoke } from '@tauri-apps/api/core';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import WoWButton from '../components/wow/WoWButton';
@@ -228,13 +228,14 @@ export default function InstalledPage() {
       <div className='mb-6 flex items-center justify-between'>
         <div>
           <h1 className='font-wow-heading text-wow-gold text-xl tracking-wide'>Installed Addons</h1>
-          <div className='mt-0.5 flex items-center gap-1.5'>
-            <p className='text-wow-text-muted text-xs'>{addonsFolder}</p>
-            <button
-              onClick={() => openPath(addonsFolder!)}
-              className='text-wow-text-muted hover:text-wow-gold transition-colors'
-              title='Open in file manager'
-            >
+          <button
+            onClick={() => invoke('open_folder', { path: addonsFolder! })}
+            className='text-wow-text-muted hover:text-wow-gold transition-colors'
+            title='Open in file manager'
+          >
+            <span className='flex gap-1'>
+              <p className='text-wow-text-muted text-xs'>{addonsFolder}</p>
+
               <svg className='h-3.5 w-3.5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
                 <path
                   strokeLinecap='round'
@@ -243,8 +244,8 @@ export default function InstalledPage() {
                   d='M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z'
                 />
               </svg>
-            </button>
-          </div>
+            </span>
+          </button>
         </div>
         <div className='flex items-center gap-2'>
           <WoWButton variant='ghost' size='sm' onClick={handlePickFolder}>

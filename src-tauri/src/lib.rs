@@ -100,6 +100,11 @@ fn import_zip(
 }
 
 #[tauri::command]
+fn open_folder(path: String) -> Result<(), String> {
+    tauri_plugin_opener::open_path(&path, None::<&str>).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn get_downloads_dir() -> Result<String, String> {
     dirs::download_dir()
         .map(|p| p.to_string_lossy().to_string())
@@ -114,7 +119,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .invoke_handler(tauri::generate_handler![install_addon, import_zip, get_downloads_dir])
+        .invoke_handler(tauri::generate_handler![install_addon, import_zip, open_folder, get_downloads_dir])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
