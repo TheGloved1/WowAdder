@@ -1,5 +1,6 @@
 import { listen } from '@tauri-apps/api/event';
-import { useEffect, useState } from 'react';
+import { open } from '@tauri-apps/plugin-dialog';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import WoWBadge from '../components/wow/WoWBadge';
@@ -8,7 +9,20 @@ import WoWDivider from '../components/wow/WoWDivider';
 import WoWIconFrame from '../components/wow/WoWIcon';
 import WoWPanel from '../components/wow/WoWPanel';
 import { useMod, useModDescription, useModFiles } from '../hooks/useCurseforge';
-import { getAddonsFolder, installAddon, isAddonInstalled, pickAddonsFolder, uninstallAddon } from '../services/addonManager';
+import {
+  addWatchFolder,
+  getAddonsFolder,
+  getDefaultDownloadsFolder,
+  installAddon,
+  installFromZip,
+  isAddonInstalled,
+  openCurseForgeDownloadPage,
+  pickAddonsFolder,
+  removeWatchFolder,
+  uninstallAddon,
+  watchForDownload,
+} from '../services/addonManager';
+import { loadPrefs, savePrefs } from '../services/preferences';
 import type { CF2File, CF2Pagination } from '../types/curseforge';
 
 function maybeParmajawn() {
@@ -46,6 +60,16 @@ export default function AddonDetailPage() {
   const [installError, setInstallError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [showingAll, setShowingAll] = useState(false);
+
+  // Download dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogPhase, setDialogPhase] = useState<'setup' | 'watching' | 'found' | 'installing' | 'error'>('setup');
+  const [dialogFile, setDialogFile] = useState<CF2File | null>(null);
+  const [dialogFolders, setDialogFolders] = useState<string[]>(() => loadPrefs().downloadWatchFolders);
+  const [dialogDeleteZip, setDialogDeleteZip] = useState(loadPrefs().deleteZipAfterInstall);
+  const [foundZipPath, setFoundZipPath] = useState<string | null>(null);
+  const [dialogError, setDialogError] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const filteredFilesQuery = useModFiles(modId, {
     gameVersion: selectedVersion || undefined,
@@ -97,6 +121,13 @@ export default function AddonDetailPage() {
       console.log('[DEBUG] handleInstallFile: no addon loaded, returning early');
       return;
     }
+
+    const prefs = loadPrefs();
+    if (prefs.supportDevs) {
+      openDownloadDialog(file);
+      return;
+    }
+
     console.log('[DEBUG] handleInstallFile called', {
       addonId: addon.id,
       addonName: addon.name,
@@ -163,6 +194,116 @@ export default function AddonDetailPage() {
       setInstalledInfo(undefined);
     } catch (err) {
       console.error('Uninstall failed', err);
+    }
+  }
+
+  async function openDownloadDialog(file: CF2File) {
+    if (!addon) return;
+    const prefs = loadPrefs();
+    let folders = prefs.downloadWatchFolders;
+
+    if (folders.length === 0) {
+      const defaultPath = await getDefaultDownloadsFolder();
+      if (defaultPath) {
+        addWatchFolder(defaultPath);
+        folders = [defaultPath];
+      }
+    }
+
+    setDialogFile(file);
+    setDialogFolders(folders);
+    setDialogDeleteZip(prefs.deleteZipAfterInstall);
+    setDialogPhase('setup');
+    setFoundZipPath(null);
+    setDialogError(null);
+    setDialogOpen(true);
+  }
+
+  function closeDialog() {
+    abortRef.current?.abort();
+    setDialogOpen(false);
+  }
+
+  async function handleAddFolder() {
+    const selected = await open({
+      directory: true,
+      multiple: false,
+      title: 'Select a download folder to watch',
+    });
+    if (selected && typeof selected === 'string' && !dialogFolders.includes(selected)) {
+      const next = [...dialogFolders, selected];
+      setDialogFolders(next);
+      addWatchFolder(selected);
+    }
+  }
+
+  function handleRemoveFolder(path: string) {
+    const next = dialogFolders.filter((f) => f !== path);
+    setDialogFolders(next);
+    removeWatchFolder(path);
+  }
+
+  function handleDeleteZipToggle() {
+    const next = !dialogDeleteZip;
+    setDialogDeleteZip(next);
+    savePrefs({ deleteZipAfterInstall: next });
+  }
+
+  async function handleOpenDownloadPage() {
+    if (!addon || !dialogFile) return;
+    setDialogPhase('watching');
+    setDialogError(null);
+
+    await openCurseForgeDownloadPage(addon.slug, dialogFile.id);
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    const path = await watchForDownload(dialogFile.fileName, dialogFolders, controller.signal);
+    if (path) {
+      setFoundZipPath(path);
+      setDialogPhase('found');
+    } else if (!controller.signal.aborted) {
+      setDialogError('Download was not detected within 5 minutes. Try again.');
+      setDialogPhase('error');
+    }
+  }
+
+  async function handleInstallFromFoundZip() {
+    if (!addon || !dialogFile || !foundZipPath) return;
+
+    abortRef.current?.abort();
+    setDialogPhase('installing');
+    setInstallProgress(0);
+    setInstallingFileId(dialogFile.id);
+
+    try {
+      let folder = await getAddonsFolder();
+      if (!folder) {
+        folder = await pickAddonsFolder();
+        if (!folder) {
+          setDialogError('No AddOns folder selected');
+          setDialogPhase('error');
+          return;
+        }
+      }
+
+      await installFromZip(
+        foundZipPath,
+        addon,
+        dialogFile.id,
+        addon.slug,
+        dialogFile.gameVersions?.slice(-1)[0] ?? null,
+        dialogDeleteZip,
+      );
+
+      setInstalledInfo(isAddonInstalled(addon.id));
+      setDialogOpen(false);
+    } catch (err) {
+      setDialogError(err instanceof Error ? err.message : 'Install failed');
+      setDialogPhase('error');
+    } finally {
+      setInstallingFileId(null);
     }
   }
 
@@ -422,6 +563,182 @@ export default function AddonDetailPage() {
           />
         : <p className='text-wow-text-muted text-sm'>No description available.</p>}
       </WoWPanel>
+
+      {dialogOpen && (
+        <div className='bg-wow-bg/80 fixed inset-0 z-50 flex items-center justify-center backdrop-blur-xs'>
+          <WoWPanel className='w-full max-w-md p-6'>
+            <h2 className='font-wow-heading text-wow-gold mb-4 text-lg tracking-wider'>
+              {dialogPhase === 'setup' && 'Install via Browser'}
+              {dialogPhase === 'watching' && 'Waiting for Download...'}
+              {dialogPhase === 'found' && 'Download Found!'}
+              {dialogPhase === 'installing' && 'Installing...'}
+              {dialogPhase === 'error' && 'Error'}
+            </h2>
+
+            {dialogPhase === 'setup' && (
+              <>
+                <p className='text-wow-text-dim mb-4 text-sm leading-relaxed'>
+                  Open the CurseForge download page for{' '}
+                  <span className='text-wow-gold'>{dialogFile?.displayName}</span> in your browser. When the download
+                  finishes, WowAdder will detect it automatically.
+                </p>
+
+                <div className='mb-4'>
+                  <p className='text-wow-text-dim mb-2 text-xs'>Watched folders:</p>
+                  <div className='max-h-32 space-y-1 overflow-y-auto'>
+                    {dialogFolders.length === 0 ?
+                      <p className='text-wow-text-muted text-xs italic'>No folders added yet. Add one below.</p>
+                    : dialogFolders.map((f) => (
+                        <div key={f} className='bg-wow-bg border-wow-border-light flex items-center justify-between rounded-sm border px-2 py-1.5'>
+                          <span className='text-wow-text-dim truncate text-xs'>{f}</span>
+                          <button
+                            onClick={() => handleRemoveFolder(f)}
+                            className='text-wow-text-muted hover:text-wow-danger ml-2 shrink-0'
+                          >
+                            <svg className='h-3.5 w-3.5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
+                            </svg>
+                          </button>
+                        </div>
+                      ))
+                    }
+                  </div>
+                  <button
+                    onClick={handleAddFolder}
+                    className='text-wow-gold-dim hover:text-wow-gold mt-2 flex items-center gap-1 text-xs tracking-wide transition-colors'
+                  >
+                    <svg className='h-3.5 w-3.5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                      <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 4v16m8-8H4' />
+                    </svg>
+                    Add folder
+                  </button>
+                </div>
+
+                <label className='mb-4 flex cursor-pointer items-center gap-2'>
+                  <button
+                    role='switch'
+                    aria-checked={dialogDeleteZip}
+                    onClick={handleDeleteZipToggle}
+                    className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors duration-200 ${
+                      dialogDeleteZip ?
+                        'border-wow-border-gold-bright bg-wow-gold shadow-[0_0_6px_rgba(251,191,36,0.15)]'
+                      : 'border-wow-border-light bg-wow-bg'
+                    }`}
+                  >
+                    <span
+                      className={`bg-wow-panel inline-block h-3.5 w-3.5 transform rounded-full transition-transform duration-200 ${
+                        dialogDeleteZip ? 'translate-x-4.5' : 'translate-x-0.5'
+                      }`}
+                    />
+                  </button>
+                  <span className='text-wow-text-dim text-xs'>Delete ZIP after install</span>
+                </label>
+
+                <div className='flex items-center gap-2'>
+                  <WoWButton
+                    variant='primary'
+                    onClick={handleOpenDownloadPage}
+                    disabled={dialogFolders.length === 0}
+                    size='md'
+                    className='flex-1'
+                  >
+                    Open CurseForge Download Page
+                  </WoWButton>
+                  <WoWButton variant='ghost' onClick={closeDialog}>
+                    Cancel
+                  </WoWButton>
+                </div>
+                {dialogFolders.length === 0 && (
+                  <p className='text-wow-text-muted mt-2 text-xs'>Add at least one folder to watch for downloads.</p>
+                )}
+              </>
+            )}
+
+            {dialogPhase === 'watching' && (
+              <>
+                <div className='mb-4 flex items-center gap-3'>
+                  <div className='border-wow-border-gold border-t-wow-gold h-5 w-5 animate-spin rounded-full border-2 border-r-transparent' />
+                  <p className='text-wow-text-dim text-sm'>
+                    Watching {dialogFolders.length} folder{dialogFolders.length !== 1 ? 's' : ''} for{' '}
+                    <span className='text-wow-gold'>{dialogFile?.fileName}</span>...
+                  </p>
+                </div>
+                <WoWButton
+                  variant='ghost'
+                  onClick={() => {
+                    abortRef.current?.abort();
+                    setDialogPhase('setup');
+                  }}
+                  className='w-full'
+                >
+                  Cancel
+                </WoWButton>
+              </>
+            )}
+
+            {dialogPhase === 'found' && (
+              <>
+                <div className='bg-wow-quality-purple/10 border-wow-quality-purple/30 mb-4 flex items-center gap-2 rounded-sm border p-3'>
+                  <svg className='text-wow-quality-purple h-5 w-5 shrink-0' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                    <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M5 13l4 4L19 7' />
+                  </svg>
+                  <span className='text-wow-text text-sm'>
+                    <span className='text-wow-gold'>{dialogFile?.fileName}</span> found
+                  </span>
+                </div>
+                <div className='flex items-center gap-2'>
+                  <WoWButton variant='primary' onClick={handleInstallFromFoundZip} size='md' className='flex-1'>
+                    Install
+                  </WoWButton>
+                  <WoWButton variant='ghost' onClick={closeDialog}>
+                    Cancel
+                  </WoWButton>
+                </div>
+              </>
+            )}
+
+            {dialogPhase === 'installing' && (
+              <>
+                <div className='mb-4'>
+                  <div className='bg-wow-panel border-wow-border-gold/30 relative h-2 overflow-hidden rounded-sm border'>
+                    <div
+                      className='from-wow-border-gold to-wow-gold absolute inset-0 bg-linear-to-r transition-all duration-300'
+                      style={{ width: `${installProgress}%` }}
+                    />
+                  </div>
+                  <span className='text-wow-text-muted font-wow-heading mt-1 block text-right text-xs'>
+                    {installProgress}%
+                  </span>
+                </div>
+              </>
+            )}
+
+            {dialogPhase === 'error' && (
+              <>
+                <div className='text-wow-danger bg-wow-danger/10 border-wow-danger/30 mb-4 flex items-center gap-2 rounded-sm border p-3 text-sm'>
+                  <svg className='h-4 w-4 shrink-0' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z'
+                    />
+                  </svg>
+                  <span>{dialogError}</span>
+                </div>
+                <div className='flex items-center gap-2'>
+                  <WoWButton variant='primary' onClick={() => { setDialogPhase('setup'); setDialogError(null); }} className='flex-1'>
+                    Try Again
+                  </WoWButton>
+                  <WoWButton variant='ghost' onClick={closeDialog}>
+                    Cancel
+                  </WoWButton>
+                </div>
+              </>
+            )}
+          </WoWPanel>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { open } from '@tauri-apps/plugin-dialog';
 import changelogRaw from '../../CHANGELOG.md?raw';
 import { version } from '../../package.json';
 import WoWDivider from '../components/wow/WoWDivider';
 import WoWPanel from '../components/wow/WoWPanel';
+import { addWatchFolder, getDefaultDownloadsFolder, removeWatchFolder } from '../services/addonManager';
 import type { ColorScheme } from '../services/preferences';
 import { loadPrefs, savePrefs } from '../services/preferences';
 
@@ -52,6 +54,8 @@ export default function SettingsPage() {
   const [colorScheme, setColorScheme] = useState<ColorScheme>(prefs.colorScheme);
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [supportDevs, setSupportDevs] = useState(prefs.supportDevs);
+  const [downloadWatchFolders, setDownloadWatchFolders] = useState<string[]>(prefs.downloadWatchFolders);
+  const [deleteZipAfterInstall, setDeleteZipAfterInstall] = useState(prefs.deleteZipAfterInstall);
 
   function handleSchemeChange(scheme: ColorScheme) {
     setColorScheme(scheme);
@@ -59,10 +63,43 @@ export default function SettingsPage() {
     savePrefs({ colorScheme: scheme });
   }
 
-  function handleSupportDevsToggle() {
+  async function handleSupportDevsToggle() {
     const next = !supportDevs;
     setSupportDevs(next);
     savePrefs({ supportDevs: next });
+
+    if (next && downloadWatchFolders.length === 0) {
+      const defaultPath = await getDefaultDownloadsFolder();
+      if (defaultPath) {
+        setDownloadWatchFolders([defaultPath]);
+        addWatchFolder(defaultPath);
+      }
+    }
+  }
+
+  async function handleAddWatchFolder() {
+    const selected = await open({
+      directory: true,
+      multiple: false,
+      title: 'Select a download folder to watch',
+    });
+    if (selected && typeof selected === 'string' && !downloadWatchFolders.includes(selected)) {
+      const next = [...downloadWatchFolders, selected];
+      setDownloadWatchFolders(next);
+      addWatchFolder(selected);
+    }
+  }
+
+  function handleRemoveWatchFolder(path: string) {
+    const next = downloadWatchFolders.filter((f) => f !== path);
+    setDownloadWatchFolders(next);
+    removeWatchFolder(path);
+  }
+
+  function handleDeleteZipToggle() {
+    const next = !deleteZipAfterInstall;
+    setDeleteZipAfterInstall(next);
+    savePrefs({ deleteZipAfterInstall: next });
   }
 
   return (
@@ -110,9 +147,10 @@ export default function SettingsPage() {
         <WoWDivider className='my-6' />
 
         <h2 className='font-wow-heading text-wow-gold mb-1 text-lg tracking-wider'>Support Developers</h2>
-        <p className='text-wow-text-dim mb-4 text-sm'>
-          When enabled, every install requests a download URL through CurseForge's API, which counts towards developer
-          revenue. Disabling skips this step and uses a direct CDN link, which is faster but does not support addon authors.
+        <p className='text-wow-text-dim mb-4 text-sm leading-relaxed'>
+          When enabled, clicking Install opens the CurseForge download page for that version in your browser. After you
+          download the file through CurseForge, WowAdder detects the ZIP in your watched folders and installs it
+          automatically. This supports addon authors through CurseForge's ad impressions and download tracking.
         </p>
         <label className='flex cursor-pointer items-center gap-3'>
           <button
@@ -135,6 +173,63 @@ export default function SettingsPage() {
             {supportDevs ? 'Supporting developers' : 'Not supporting developers'}
           </span>
         </label>
+
+        {supportDevs && (
+          <>
+            <div className='mt-4'>
+              <p className='text-wow-text-dim mb-2 text-xs'>Watched download folders:</p>
+              <div className='max-h-40 space-y-1 overflow-y-auto'>
+                {downloadWatchFolders.length === 0 ?
+                  <p className='text-wow-text-muted text-xs italic'>No folders added yet. Add one or more below.</p>
+                : downloadWatchFolders.map((f) => (
+                    <div key={f} className='bg-wow-bg border-wow-border-light flex items-center justify-between rounded-sm border px-2 py-1.5'>
+                      <span className='text-wow-text-dim truncate text-xs'>{f}</span>
+                      <button
+                        onClick={() => handleRemoveWatchFolder(f)}
+                        className='text-wow-text-muted hover:text-wow-danger ml-2 shrink-0'
+                      >
+                        <svg className='h-3.5 w-3.5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                          <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
+                        </svg>
+                      </button>
+                    </div>
+                  ))
+                }
+              </div>
+              <button
+                onClick={handleAddWatchFolder}
+                className='text-wow-gold-dim hover:text-wow-gold mt-2 flex items-center gap-1 text-xs tracking-wide transition-colors'
+              >
+                <svg className='h-3.5 w-3.5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 4v16m8-8H4' />
+                </svg>
+                Add folder
+              </button>
+            </div>
+
+            <label className='mt-4 flex cursor-pointer items-center gap-3'>
+              <button
+                role='switch'
+                aria-checked={deleteZipAfterInstall}
+                onClick={handleDeleteZipToggle}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors duration-200 ${
+                  deleteZipAfterInstall ?
+                    'border-wow-border-gold-bright bg-wow-gold shadow-[0_0_6px_rgba(251,191,36,0.15)]'
+                  : 'border-wow-border-light bg-wow-bg'
+                }`}
+              >
+                <span
+                  className={`bg-wow-panel inline-block h-4 w-4 transform rounded-full transition-transform duration-200 ${
+                    deleteZipAfterInstall ? 'translate-x-5.5' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <span className={`font-wow-heading text-sm tracking-wider ${deleteZipAfterInstall ? 'text-wow-gold' : 'text-wow-text-dim'}`}>
+                {deleteZipAfterInstall ? 'Deleting ZIP after install' : 'Keeping ZIP after install'}
+              </span>
+            </label>
+          </>
+        )}
 
         <WoWDivider className='my-6' />
 

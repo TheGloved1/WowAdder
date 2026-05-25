@@ -10,6 +10,8 @@ interface Preferences {
   sortOption: SortOption;
   colorScheme: ColorScheme;
   supportDevs: boolean;
+  downloadWatchFolders: string[];
+  deleteZipAfterInstall: boolean;
 }
 
 const DEFAULTS: Preferences = {
@@ -18,6 +20,8 @@ const DEFAULTS: Preferences = {
   sortOption: { label: 'Most Downloads', field: 6, order: 'desc' },
   colorScheme: 'default',
   supportDevs: false,
+  downloadWatchFolders: [],
+  deleteZipAfterInstall: true,
 };
 
 export function loadPrefs(): Preferences {
