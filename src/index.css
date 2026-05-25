@@ -83,6 +83,10 @@
   --color-wow-text-muted: #38bdf8;
 }
 
+button {
+  cursor: pointer;
+}
+
 html,
 body {
   margin: 0;
