@@ -1,6 +1,13 @@
 # Changelog
 
 
+
+## [0.3.2] - 2026-05-25
+
+### Added
+
+- **ci**: use tag-specific changelog as GitHub release body
+
 ## [0.3.1] - 2026-05-25
 
 ### Added
