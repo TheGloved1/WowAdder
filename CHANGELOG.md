@@ -1,3 +1,17 @@
+## [0.3.11] - 2026-05-25
+
+### Added
+
+- add support-developers toggle to settings
+
+### Changed
+
+- **install**: track progress per file and remove installDone state
+
+### Other
+
+- bump Cargo.lock version to 0.3.10
+
 ## [0.3.10] - 2026-05-25
 
 ### Added
