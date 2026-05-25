@@ -17,6 +17,22 @@
 
 - **release**: add helper function for "no" answers and standardize prompts
 
+
+## 2026-05-25
+
+### Added
+
+- **scripts**: auto-push release and categorize unknown commits in CHANGELOG
+
+### Fixed
+
+- **scripts**: ensure changelog generation uses latest tag from remote
+
+### Other
+
+- update AGENTS.md with React Query patterns, dev mode guard, and format command
+- **package.json**: remove unused release push scripts
+
 ## [0.3.2] - 2026-05-25
 
 ### Added
