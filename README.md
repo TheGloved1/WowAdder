@@ -31,10 +31,6 @@
   <img src="public/banner.png" alt="WowAdder Banner" width="100%">
 </div>
 
-<p align="center">
-  Yes, this is AI... and yes, it's shit!
-</p>
-
 ## Features
 
 <p align="center">

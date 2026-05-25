@@ -1,21 +1,20 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import VersionSelector from "../components/VersionSelector";
 import SearchBar from "../components/SearchBar";
 import CategorySidebar from "../components/CategorySidebar";
 import AddonGrid from "../components/AddonGrid";
 import SortSelector from "../components/SortSelector";
+import Pagination from "../components/Pagination";
 import type { SortOption } from "../components/SortSelector";
 import WoWPanel from "../components/wow/WoWPanel";
 import WoWDivider from "../components/wow/WoWDivider";
 import {
-  getGameVersions,
-  searchMods,
   getCategories,
   getClientStatus,
 } from "../services/curseforge";
 import { loadPrefs, savePrefs } from "../services/preferences";
-import type { CF2Addon, CF2Pagination } from "../types/curseforge";
+import { useGameVersions, useSearchMods } from "../hooks/useCurseforge";
 
 function sortVersionsDesc(versions: string[]): string[] {
   return [...versions].sort((a, b) => {
@@ -35,8 +34,15 @@ export default function BrowsePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const prefs = loadPrefs();
 
-  const [versions, setVersions] = useState<string[]>([]);
-  const [versionsLoading, setVersionsLoading] = useState(true);
+  const versionsQuery = useGameVersions(1);
+  const versionsLoading = versionsQuery.isLoading;
+  const rawVersions = versionsQuery.data ?? [];
+
+  const sortedVersions = useMemo(() => {
+    const allVersions = sortVersionsDesc(rawVersions.flatMap((vt) => vt.versions));
+    return allVersions;
+  }, [rawVersions]);
+
   const [selectedVersion, setSelectedVersion] = useState(
     searchParams.get("version") || prefs.version
   );
@@ -52,96 +58,37 @@ export default function BrowsePage() {
     prefs.sortOption
   );
 
-  const [addons, setAddons] = useState<CF2Addon[]>([]);
-  const [pagination, setPagination] = useState<CF2Pagination | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(
     Math.max(0, (Number(searchParams.get("page")) || 1) - 1)
   );
-  const [editingPage, setEditingPage] = useState(false);
-  const editInputRef = useRef<HTMLInputElement>(null);
-  const submittingRef = useRef(false);
   const [pageSize, setPageSize] = useState(
     Number(searchParams.get("pageSize")) || prefs.pageSize
   );
 
   useEffect(() => {
-    if (editingPage && editInputRef.current) {
-      editInputRef.current.focus();
-      editInputRef.current.select();
+    if (!selectedVersion && sortedVersions.length > 0) {
+      setSelectedVersion(sortedVersions[0]);
     }
-  }, [editingPage]);
+  }, [sortedVersions, selectedVersion]);
+
+  const searchModsQuery = useSearchMods({
+    gameVersion: selectedVersion || undefined,
+    gameVersionTypeId: selectedVersionTypeId,
+    searchFilter: searchQuery || undefined,
+    categoryId: selectedCategoryId > 0 ? selectedCategoryId : undefined,
+    sortField: String(sortOption.field),
+    sortOrder: sortOption.order,
+    index: currentPage * pageSize,
+    pageSize,
+  });
+
+  const addons = searchModsQuery.data?.addons ?? [];
+  const pagination = searchModsQuery.data?.pagination ?? null;
+  const loading = searchModsQuery.isLoading;
+  const error = searchModsQuery.error?.message ?? null;
 
   const categories = getCategories();
   const clientStatus = getClientStatus();
-
-  useEffect(() => {
-    async function loadVersions() {
-      try {
-        const versionData = await getGameVersions(1);
-        const allVersions = sortVersionsDesc(
-          versionData.flatMap((vt) => vt.versions)
-        );
-        setVersions(allVersions);
-        if (!selectedVersion && allVersions.length > 0) {
-          setSelectedVersion(allVersions[0]);
-        }
-      } catch {
-        setVersions([]);
-      } finally {
-        setVersionsLoading(false);
-      }
-    }
-    loadVersions();
-  }, []);
-
-  const fetchAddons = useCallback(
-    async (page: number) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const result = await searchMods({
-          gameVersion: selectedVersion || undefined,
-          gameVersionTypeId: selectedVersionTypeId,
-          searchFilter: searchQuery || undefined,
-          categoryId: selectedCategoryId > 0 ? selectedCategoryId : undefined,
-          sortField: String(sortOption.field),
-          sortOrder: sortOption.order,
-          index: page * pageSize,
-          pageSize,
-        });
-        setAddons(result.addons);
-        setPagination(result.pagination ?? null);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "An unknown error occurred"
-        );
-        setAddons([]);
-        setPagination(null);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [
-      selectedVersion,
-      selectedVersionTypeId,
-      searchQuery,
-      selectedCategoryId,
-      sortOption,
-      pageSize,
-    ]
-  );
-
-  useEffect(() => {
-    fetchAddons(currentPage);
-  }, [fetchAddons]);
-
-  function handleSearch() {
-    setCurrentPage(0);
-    syncUrl(selectedVersion, searchQuery, selectedCategoryId, sortOption.field, sortOption.order, pageSize, 0);
-    fetchAddons(0);
-  }
 
   function syncUrl(
     v: string, q: string, cat: number,
@@ -156,6 +103,11 @@ export default function BrowsePage() {
     if (ps !== 20) params.set("pageSize", String(ps));
     if (page > 0) params.set("page", String(page + 1));
     setSearchParams(params, { replace: false });
+  }
+
+  function handleSearch() {
+    setCurrentPage(0);
+    syncUrl(selectedVersion, searchQuery, selectedCategoryId, sortOption.field, sortOption.order, pageSize, 0);
   }
 
   function handleVersionChange(version: string) {
@@ -196,7 +148,6 @@ export default function BrowsePage() {
   function handlePageChange(newPage: number) {
     setCurrentPage(newPage);
     syncUrl(selectedVersion, searchQuery, selectedCategoryId, sortOption.field, sortOption.order, pageSize, newPage);
-    fetchAddons(newPage);
   }
 
   function handlePageSizeChange(size: number) {
@@ -206,59 +157,9 @@ export default function BrowsePage() {
     savePrefs({ pageSize: size });
   }
 
-  function handleEditSubmit() {
-    if (submittingRef.current) return;
-    submittingRef.current = true;
-    const input = editInputRef.current;
-    if (!input) { submittingRef.current = false; return; }
-    const val = Number(input.value);
-    if (isNaN(val) || val < 1 || val > totalPages) {
-      setEditingPage(false);
-      submittingRef.current = false;
-      return;
-    }
-    const newPage = val - 1;
-    setCurrentPage(newPage);
-    syncUrl(selectedVersion, searchQuery, selectedCategoryId, sortOption.field, sortOption.order, pageSize, newPage);
-    fetchAddons(newPage);
-    setEditingPage(false);
-    submittingRef.current = false;
-  }
-
-  function handleCurrentPageClick() {
-    setEditingPage(true);
-  }
-
-  function handleInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleEditSubmit();
-    } else if (e.key === "Escape") {
-      setEditingPage(false);
-    }
-  }
-
   const totalPages = pagination
     ? Math.ceil(pagination.totalCount / pagination.pageSize)
     : 0;
-
-  function getPageNumbers(): (number | "ellipsis")[] {
-    if (totalPages <= 7) {
-      return Array.from({ length: totalPages }, (_, i) => i);
-    }
-    const pages: (number | "ellipsis")[] = [0];
-    if (currentPage > 3) pages.push("ellipsis");
-    for (
-      let i = Math.max(1, currentPage - 1);
-      i <= Math.min(totalPages - 2, currentPage + 1);
-      i++
-    ) {
-      pages.push(i);
-    }
-    if (currentPage < totalPages - 4) pages.push("ellipsis");
-    pages.push(totalPages - 1);
-    return pages;
-  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
@@ -280,7 +181,7 @@ export default function BrowsePage() {
       <div className="flex items-center gap-3 mb-6">
         <SearchBar value={searchQuery} onChange={setSearchQuery} onSearch={handleSearch} />
         <VersionSelector
-          versions={versions}
+          versions={sortedVersions}
           selectedVersion={selectedVersion}
           onVersionChange={handleVersionChange}
           loading={versionsLoading}
@@ -302,6 +203,14 @@ export default function BrowsePage() {
                 </p>
               ) : (
                 <div />
+              )}
+              {totalPages > 1 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                  className="hidden md:flex"
+                />
               )}
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1.5">
@@ -330,70 +239,12 @@ export default function BrowsePage() {
             />
 
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-1 mt-6 pt-4 border-t border-wow-border-light">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 0}
-                  className="px-2.5 py-1.5 text-xs bg-wow-panel border border-wow-border-light rounded-sm disabled:opacity-40 disabled:cursor-not-allowed hover:border-wow-border-gold transition-colors text-wow-text-dim hover:text-wow-text"
-                >
-                  Prev
-                </button>
-                {(() => {
-                  const pages = getPageNumbers();
-                  const items: React.JSX.Element[] = [];
-                  let jumpShown = false;
-                  for (let i = 0; i < pages.length; i++) {
-                    const p = pages[i];
-                    if (p === "ellipsis" && !jumpShown) {
-                      jumpShown = true;
-                      items.push(<span key={`ellipsis-${i}`} className="px-1 text-wow-text-muted text-xs">...</span>);
-                    } else if (p === "ellipsis") {
-                      items.push(<span key={`ellipsis2-${i}`} className="px-1 text-wow-text-muted text-xs">...</span>);
-                    } else if (p === currentPage && editingPage) {
-                      items.push(
-                        <input
-                          key={`edit-${p}`}
-                          ref={editInputRef}
-                          type="number"
-                          min={1}
-                          max={totalPages}
-                          defaultValue={p + 1}
-                          onKeyDown={handleInputKeyDown}
-                          onBlur={handleEditSubmit}
-                          className="w-10 h-8 text-xs text-center bg-wow-panel border border-wow-border-gold rounded-sm text-wow-text focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                      );
-                    } else {
-                      items.push(
-                        p === currentPage ? (
-                          <button
-                            key={p}
-                            onClick={handleCurrentPageClick}
-                            className="w-8 h-8 text-xs rounded-sm border border-wow-gold bg-wow-gold text-wow-bg font-wow-heading transition-colors cursor-pointer"
-                          >
-                            {p + 1}
-                          </button>
-                        ) : (
-                          <button
-                            key={p}
-                            onClick={() => handlePageChange(p)}
-                            className="w-8 h-8 text-xs rounded-sm border border-wow-border-light bg-wow-panel text-wow-text-dim hover:border-wow-border-gold hover:text-wow-text transition-colors cursor-pointer"
-                          >
-                            {p + 1}
-                          </button>
-                        )
-                      );
-                    }
-                  }
-                  return items;
-                })()}
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage >= totalPages - 1}
-                  className="px-2.5 py-1.5 text-xs bg-wow-panel border border-wow-border-light rounded-sm disabled:opacity-40 disabled:cursor-not-allowed hover:border-wow-border-gold transition-colors text-wow-text-dim hover:text-wow-text"
-                >
-                  Next
-                </button>
+              <div className="mt-6 pt-4 border-t border-wow-border-light flex justify-center">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
               </div>
             )}
           </WoWPanel>
