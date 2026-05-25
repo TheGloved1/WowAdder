@@ -1,3 +1,9 @@
+## [0.3.9] - 2026-05-25
+
+### Fixed
+
+- **ui**: Add default cursor on button hover
+
 ## [0.3.8] - 2026-05-25
 
 ### Fixed
