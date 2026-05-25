@@ -69,7 +69,7 @@ export default function BrowsePage() {
 
   const addons = searchModsQuery.data?.addons ?? [];
   const pagination = searchModsQuery.data?.pagination ?? null;
-  const loading = searchModsQuery.isLoading;
+  const loading = searchModsQuery.isLoading || searchModsQuery.isPlaceholderData;
   const error = searchModsQuery.error?.message ?? null;
 
   const categories = getCategories();
