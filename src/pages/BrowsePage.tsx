@@ -11,7 +11,7 @@ import type { SortOption } from '../components/SortSelector';
 import SortSelector, { SORT_OPTIONS } from '../components/SortSelector';
 import { useBrowseParams } from '../hooks/useBrowseParams';
 import { useGameVersions, useSearchMods } from '../hooks/useCurseforge';
-import { getCategoryTree, getClientStatus } from '../services/curseforge';
+import { cf, getCategoryTree, getClientStatus } from '../services/curseforge';
 import { savePrefs } from '../services/preferences';
 
 function sortVersionsDesc(versions: string[]): string[] {
@@ -29,7 +29,7 @@ function sortVersionsDesc(versions: string[]): string[] {
 
 export default function BrowsePage() {
   const navigate = useNavigate();
-  const { params, updateParams, clearAll, buildUrl } = useBrowseParams();
+  const { params, updateParams, clearAll } = useBrowseParams();
 
   const [searchQuery, setSearchQuery] = useState(params.q);
   useEffect(() => {
@@ -51,7 +51,7 @@ export default function BrowsePage() {
   const effectivePageSize = hasClientFilters ? Math.min(params.pageSize * 3, 50) : params.pageSize;
 
   const searchModsQuery = useSearchMods({
-    gameVersionTypeId: 517,
+    gameVersionTypeId: cf.CF2WowGameVersionType.Retail,
     gameVersion: apiGameVersion,
     searchFilter: searchQuery || undefined,
     sortField: String(sortOption.field),
@@ -105,7 +105,7 @@ export default function BrowsePage() {
   function handleAddonClick(id: number) {
     const versionParam = params.versions.length > 0 ? `?version=${encodeURIComponent(params.versions.join(','))}` : '';
     navigate(`/addon/${id}${versionParam}`, {
-      state: { searchParams: Object.fromEntries(buildUrl()) },
+      state: { browseParams: params },
     });
   }
 

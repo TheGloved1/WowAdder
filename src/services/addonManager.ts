@@ -5,14 +5,14 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { load } from '@tauri-apps/plugin-store';
 import type { CF2Addon } from '../types/curseforge';
 import { getMod, getModFileDownloadUrl, searchMods } from './curseforge';
-import { loadPrefs, savePrefs } from './preferences';
+import { DEFAULTS, loadPrefs, savePrefs } from './preferences';
 
 const STORE_FILE = 'wowadder-config.json';
 
 let storePromise: ReturnType<typeof load> | null = null;
 function getStore() {
   if (!storePromise) {
-    storePromise = load(STORE_FILE, { defaults: {}, autoSave: true });
+    storePromise = load(STORE_FILE, { defaults: DEFAULTS, autoSave: true });
   }
   return storePromise;
 }

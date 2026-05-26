@@ -1,17 +1,17 @@
-import type { CF2Addon, CF2File, CF2Pagination } from 'curseforge-v2';
-import { CFV2Client } from 'curseforge-v2';
+export { cf };
+import * as cf from 'curseforge-v2';
 
 const apiKey = import.meta.env.VITE_CURSEFORGE_API_KEY;
 const BASE_URL = 'https://api.curseforge.com';
 
-let client: CFV2Client | null = null;
+let client: cf.CFV2Client | null = null;
 
-function getClient(): CFV2Client {
+function getClient(): cf.CFV2Client {
   if (!client) {
     if (!apiKey || apiKey === 'your_curseforge_api_key_here') {
       throw new Error('CurseForge API key not configured. Set VITE_CURSEFORGE_API_KEY in your .env file.');
     }
-    client = new CFV2Client({ apiKey });
+    client = new cf.CFV2Client({ apiKey });
   }
   return client;
 }
@@ -61,8 +61,8 @@ export async function searchMods(params: {
     if (!response.ok) throw new Error(`CurseForge API returned ${response.status}`);
     const json = await response.json();
     return {
-      addons: (json.data ?? []) as CF2Addon[],
-      pagination: json.pagination as CF2Pagination | undefined,
+      addons: (json.data ?? []) as cf.CF2Addon[],
+      pagination: json.pagination as cf.CF2Pagination | undefined,
     };
   }
 
@@ -118,8 +118,8 @@ export async function getModFiles(
   if (!response.ok) throw new Error(`CurseForge API returned ${response.status}`);
   const json = await response.json();
   return {
-    files: (json.data ?? []) as CF2File[],
-    pagination: json.pagination as CF2Pagination | undefined,
+    files: (json.data ?? []) as cf.CF2File[],
+    pagination: json.pagination as cf.CF2Pagination | undefined,
   };
 }
 

@@ -7,6 +7,10 @@ function Select({ children, ...props }: React.ComponentProps<typeof SelectPrimit
   return <SelectPrimitive.Root {...props}>{children}</SelectPrimitive.Root>;
 }
 
+function SelectValue({ ...props }: React.ComponentProps<typeof SelectPrimitive.Value>) {
+  return <SelectPrimitive.Value data-slot='select-value' {...props} />;
+}
+
 function SelectTrigger({ className, children, ...props }: React.ComponentProps<typeof SelectPrimitive.Trigger>) {
   return (
     <SelectPrimitive.Trigger
@@ -83,4 +87,4 @@ function SelectSeparator({ className, ...props }: React.ComponentProps<typeof Se
   );
 }
 
-export { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger };
+export { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue };
