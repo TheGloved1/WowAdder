@@ -1,14 +1,14 @@
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { open } from '@tauri-apps/plugin-dialog';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
-import WoWBadge from '../components/wow/WoWBadge';
-import WoWButton from '../components/wow/WoWButton';
-import WoWDivider from '../components/wow/WoWDivider';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { WoWSeparator } from '@/components/ui/separator';
 import WoWIconFrame from '../components/wow/WoWIcon';
-import WoWPanel from '../components/wow/WoWPanel';
 import { useMod, useModDescription, useModFiles } from '../hooks/useCurseforge';
 import {
   addWatchFolder,
@@ -34,6 +34,7 @@ export default function AddonDetailPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const selectedVersion = searchParams.get('version') || '';
+  const selectedVersions = selectedVersion ? selectedVersion.split(',').filter(Boolean) : [];
   const location = useLocation();
   const backParams = location.state?.searchParams as Record<string, string> | undefined;
   const handleBack = () => {
@@ -54,7 +55,6 @@ export default function AddonDetailPage() {
   const [installProgress, setInstallProgress] = useState(0);
   const [installError, setInstallError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
-  const [showingAll, setShowingAll] = useState(false);
 
   // Download dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -67,33 +67,27 @@ export default function AddonDetailPage() {
   const abortRef = useRef<AbortController | null>(null);
 
   const filteredFilesQuery = useModFiles(modId, {
-    gameVersion: selectedVersion || undefined,
     gameVersionTypeId: 517,
-    index: currentPage * PAGE_SIZE,
-    pageSize: PAGE_SIZE,
+    index: 0,
+    pageSize: 2000,
   });
 
-  const allFilesQuery = useModFiles(modId, {
+  const rawFiles = filteredFilesQuery.data?.files.length ? filteredFilesQuery.data.files : (addon?.latestFiles ?? []);
+  const filesLoading = filteredFilesQuery.isLoading;
+
+  const allFilteredFiles = useMemo(() => {
+    if (selectedVersions.length === 0) return rawFiles;
+    return rawFiles.filter((f: CF2File) => f.gameVersions?.some((v: string) => selectedVersions.includes(v)));
+  }, [rawFiles, selectedVersions]);
+
+  const files = allFilteredFiles.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+
+  const pagination: CF2Pagination | null = {
     index: currentPage * PAGE_SIZE,
     pageSize: PAGE_SIZE,
-  });
-
-  useEffect(() => {
-    if (
-      !filteredFilesQuery.isLoading &&
-      !showingAll &&
-      filteredFilesQuery.data &&
-      filteredFilesQuery.data.files.length === 0
-    ) {
-      setShowingAll(true);
-    }
-  }, [filteredFilesQuery.data, filteredFilesQuery.isLoading, showingAll]);
-
-  const filesData = showingAll ? allFilesQuery.data : filteredFilesQuery.data;
-  const filesLoading = filteredFilesQuery.isLoading || (showingAll && allFilesQuery.isLoading);
-  const files = filesData?.files.length ? filesData.files : (addon?.latestFiles ?? []);
-  const pagination: CF2Pagination | null =
-    (showingAll ? allFilesQuery.data?.pagination : filteredFilesQuery.data?.pagination) ?? null;
+    resultCount: Math.min(allFilteredFiles.length - currentPage * PAGE_SIZE, PAGE_SIZE),
+    totalCount: allFilteredFiles.length,
+  };
 
   useEffect(() => {
     if (!addon) return;
@@ -348,7 +342,7 @@ export default function AddonDetailPage() {
         Back
       </button>
 
-      <WoWPanel className='mb-8 p-6'>
+      <Card className='mb-8 p-6'>
         <div className='flex gap-6'>
           <WoWIconFrame size='lg'>
             {addon.logo?.url ?
@@ -396,9 +390,9 @@ export default function AddonDetailPage() {
             </div>
             <div className='mt-3 flex flex-wrap gap-1.5'>
               {addon.categories?.map((cat) => (
-                <WoWBadge key={cat.id} variant='info'>
+                <Badge key={cat.id} variant='info'>
                   {cat.name}
-                </WoWBadge>
+                </Badge>
               ))}
             </div>
             <div className='mt-2 flex flex-wrap gap-1.5'>
@@ -410,9 +404,9 @@ export default function AddonDetailPage() {
             </div>
           </div>
         </div>
-      </WoWPanel>
+      </Card>
 
-      <WoWPanel className='p-6'>
+      <Card className='p-6'>
         {installError && (
           <div className='text-wow-danger bg-wow-danger/10 border-wow-danger/30 mb-4 flex items-center gap-2 rounded-sm border px-4 py-3 text-sm'>
             <svg className='h-4 w-4 shrink-0' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
@@ -437,8 +431,7 @@ export default function AddonDetailPage() {
           {pagination && (
             <p className='text-wow-text-muted text-xs'>
               {pagination.totalCount.toLocaleString()} files
-              {selectedVersion && !showingAll && ' for this version'}
-              {showingAll && ' (showing all versions)'}
+              {selectedVersions.length > 0 && ` for ${selectedVersions.length > 1 ? 'selected versions' : 'this version'}`}
             </p>
           )}
         </div>
@@ -461,9 +454,9 @@ export default function AddonDetailPage() {
                     <div className='min-w-0 flex-1'>
                       <div className='flex items-center gap-2'>
                         <span className='font-wow-heading text-wow-text text-sm tracking-wide'>{file.displayName}</span>
-                        {file.releaseType === 1 && <WoWBadge variant='release'>Release</WoWBadge>}
-                        {file.releaseType === 2 && <WoWBadge variant='beta'>Beta</WoWBadge>}
-                        {file.releaseType === 3 && <WoWBadge variant='alpha'>Alpha</WoWBadge>}
+                        {file.releaseType === 1 && <Badge variant='release'>Release</Badge>}
+                        {file.releaseType === 2 && <Badge variant='beta'>Beta</Badge>}
+                        {file.releaseType === 3 && <Badge variant='alpha'>Alpha</Badge>}
                       </div>
                       {file.gameVersions && file.gameVersions.length > 0 && (
                         <div className='mt-1.5 flex flex-wrap gap-1'>
@@ -499,12 +492,12 @@ export default function AddonDetailPage() {
                           </span>
                         </div>
                       : installedInfo && installedInfo.installedFileId === file.id ?
-                        <WoWButton variant='danger' onClick={handleUninstall}>
+                        <Button variant='destructive' onClick={handleUninstall}>
                           Uninstall
-                        </WoWButton>
-                      : <WoWButton variant='primary' onClick={() => handleInstallFile(file)}>
+                        </Button>
+                      : <Button variant='primary' onClick={() => handleInstallFile(file)}>
                           Install
-                        </WoWButton>
+                        </Button>
                       }
                     </div>
                   </div>
@@ -547,7 +540,7 @@ export default function AddonDetailPage() {
           </div>
         )}
 
-        <WoWDivider className='my-6' />
+        <WoWSeparator className='my-6' />
 
         <h2 className='font-wow-heading text-wow-gold mb-4 text-lg tracking-wide'>Description</h2>
         {descriptionLoading ?
@@ -562,11 +555,11 @@ export default function AddonDetailPage() {
             dangerouslySetInnerHTML={{ __html: description }}
           />
         : <p className='text-wow-text-muted text-sm'>No description available.</p>}
-      </WoWPanel>
+      </Card>
 
       {dialogOpen && (
         <div className='bg-wow-bg/80 fixed inset-0 z-50 flex items-center justify-center backdrop-blur-xs'>
-          <WoWPanel className='w-full max-w-md p-6'>
+          <Card className='w-full max-w-md p-6'>
             <h2 className='font-wow-heading text-wow-gold mb-4 text-lg tracking-wider'>
               {dialogPhase === 'setup' && 'Install via Browser'}
               {dialogPhase === 'watching' && 'Waiting for Download...'}
@@ -637,7 +630,7 @@ export default function AddonDetailPage() {
                 </label>
 
                 <div className='flex items-center gap-2'>
-                  <WoWButton
+                  <Button
                     variant='primary'
                     onClick={handleOpenDownloadPage}
                     disabled={dialogFolders.length === 0}
@@ -645,10 +638,10 @@ export default function AddonDetailPage() {
                     className='flex-1'
                   >
                     Open CurseForge Download Page
-                  </WoWButton>
-                  <WoWButton variant='ghost' onClick={closeDialog}>
+                  </Button>
+                  <Button variant='ghost' onClick={closeDialog}>
                     Cancel
-                  </WoWButton>
+                  </Button>
                 </div>
                 {dialogFolders.length === 0 && (
                   <p className='text-wow-text-muted mt-2 text-xs'>Add at least one folder to watch for downloads.</p>
@@ -665,7 +658,7 @@ export default function AddonDetailPage() {
                     <span className='text-wow-gold'>{dialogFile?.fileName}</span>...
                   </p>
                 </div>
-                <WoWButton
+                <Button
                   variant='ghost'
                   onClick={() => {
                     abortRef.current?.abort();
@@ -674,7 +667,7 @@ export default function AddonDetailPage() {
                   className='w-full'
                 >
                   Cancel
-                </WoWButton>
+                </Button>
               </>
             )}
 
@@ -694,12 +687,12 @@ export default function AddonDetailPage() {
                   </span>
                 </div>
                 <div className='flex items-center gap-2'>
-                  <WoWButton variant='primary' onClick={handleInstallFromFoundZip} size='md' className='flex-1'>
+                  <Button variant='primary' onClick={handleInstallFromFoundZip} size='md' className='flex-1'>
                     Install
-                  </WoWButton>
-                  <WoWButton variant='ghost' onClick={closeDialog}>
+                  </Button>
+                  <Button variant='ghost' onClick={closeDialog}>
                     Cancel
-                  </WoWButton>
+                  </Button>
                 </div>
               </>
             )}
@@ -734,7 +727,7 @@ export default function AddonDetailPage() {
                   <span>{dialogError}</span>
                 </div>
                 <div className='flex items-center gap-2'>
-                  <WoWButton
+                  <Button
                     variant='primary'
                     onClick={() => {
                       setDialogPhase('setup');
@@ -743,14 +736,14 @@ export default function AddonDetailPage() {
                     className='flex-1'
                   >
                     Try Again
-                  </WoWButton>
-                  <WoWButton variant='ghost' onClick={closeDialog}>
+                  </Button>
+                  <Button variant='ghost' onClick={closeDialog}>
                     Cancel
-                  </WoWButton>
+                  </Button>
                 </div>
               </>
             )}
-          </WoWPanel>
+          </Card>
         </div>
       )}
     </div>

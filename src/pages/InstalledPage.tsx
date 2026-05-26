@@ -1,8 +1,8 @@
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { invoke } from '@tauri-apps/api/core';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import WoWButton from '../components/wow/WoWButton';
-import WoWPanel from '../components/wow/WoWPanel';
 import type { InstalledAddon, ScannedAddon } from '../services/addonManager';
 import {
   adoptAllScannedAddons,
@@ -206,9 +206,9 @@ export default function InstalledPage() {
           <p className='text-wow-text-dim mx-auto mb-6 max-w-md'>
             Select your World of Warcraft AddOns folder to start installing and managing addons directly from WowAdder.
           </p>
-          <WoWButton variant='primary' size='md' onClick={handlePickFolder}>
+          <Button variant='primary' size='md' onClick={handlePickFolder}>
             Select AddOns Folder
-          </WoWButton>
+          </Button>
         </div>
         <div className='bg-wow-panel border-wow-border-light mx-auto mt-8 max-w-md rounded-sm border p-4 text-left'>
           <p className='text-wow-text-muted font-wow-heading mb-1 text-xs tracking-wide uppercase'>
@@ -248,10 +248,10 @@ export default function InstalledPage() {
           </button>
         </div>
         <div className='flex items-center gap-2'>
-          <WoWButton variant='ghost' size='sm' onClick={handlePickFolder}>
+          <Button variant='ghost' size='sm' onClick={handlePickFolder}>
             Change Folder
-          </WoWButton>
-          <WoWButton variant='primary' size='sm' onClick={handleScan} disabled={scanning}>
+          </Button>
+          <Button variant='primary' size='sm' onClick={handleScan} disabled={scanning}>
             {scanning ?
               <svg className='h-3.5 w-3.5 animate-spin' viewBox='0 0 24 24'>
                 <circle className='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='4' fill='none' />
@@ -259,10 +259,10 @@ export default function InstalledPage() {
               </svg>
             : null}
             {scanning ? 'Scanning...' : 'Sync'}
-          </WoWButton>
-          <WoWButton variant='default' size='sm' onClick={handleImport} disabled={importing}>
+          </Button>
+          <Button variant='default' size='sm' onClick={handleImport} disabled={importing}>
             {importing ? 'Importing...' : 'Import ZIP'}
-          </WoWButton>
+          </Button>
         </div>
       </div>
 
@@ -282,14 +282,14 @@ export default function InstalledPage() {
             </h3>
             <div className='flex items-center gap-2'>
               {unmatchedCount > 0 && (
-                <WoWButton variant='default' size='sm' onClick={handleMatchAll} disabled={batchMatching}>
+                <Button variant='default' size='sm' onClick={handleMatchAll} disabled={batchMatching}>
                   {batchMatching ? 'Matching...' : `Match All (${unmatchedCount})`}
-                </WoWButton>
+                </Button>
               )}
               {matchableCount > 0 && (
-                <WoWButton variant='primary' size='sm' onClick={handleAdoptAll} disabled={batchAdopting}>
+                <Button variant='primary' size='sm' onClick={handleAdoptAll} disabled={batchAdopting}>
                   {batchAdopting ? 'Importing...' : `Import All (${matchableCount})`}
-                </WoWButton>
+                </Button>
               )}
             </div>
           </div>
@@ -321,36 +321,36 @@ export default function InstalledPage() {
                 </div>
                 <div className='ml-3 flex shrink-0 items-center gap-2'>
                   {item.adoptError ?
-                    <WoWButton
-                      variant='danger'
+                    <Button
+                      variant='destructive'
                       size='sm'
                       onClick={() => handleMatch(item.folderName)}
                       disabled={matching.has(item.folderName)}
                     >
                       {matching.has(item.folderName) ? '...' : 'Retry'}
-                    </WoWButton>
+                    </Button>
                   : item.matched && item.matchAddon ?
                     <>
                       <span className='text-wow-quality-green font-wow-heading text-xs tracking-wide'>
                         {item.matchAddon.name}
                       </span>
-                      <WoWButton
+                      <Button
                         variant='primary'
                         size='sm'
                         onClick={() => handleAdopt(item.folderName)}
                         disabled={adopting === item.folderName || batchAdopting}
                       >
                         {adopting === item.folderName ? '...' : 'Import'}
-                      </WoWButton>
+                      </Button>
                     </>
-                  : <WoWButton
+                  : <Button
                       variant='default'
                       size='sm'
                       onClick={() => handleMatch(item.folderName)}
                       disabled={matching.has(item.folderName) || batchMatching}
                     >
                       {matching.has(item.folderName) ? 'Matching...' : 'Match'}
-                    </WoWButton>
+                    </Button>
                   }
                 </div>
               </div>
@@ -380,7 +380,7 @@ export default function InstalledPage() {
             Browse Addons
           </Link>
         </div>
-      : <WoWPanel className='divide-wow-border-light divide-y'>
+      : <Card className='divide-wow-border-light divide-y'>
           {installed.map((addon) => (
             <div key={addon.modId} className='hover:bg-wow-panel-hover/50 p-4 transition-colors'>
               <div className='flex items-start justify-between gap-4'>
@@ -405,18 +405,18 @@ export default function InstalledPage() {
                     </span>
                   </div>
                 </div>
-                <WoWButton
-                  variant='danger'
+                <Button
+                  variant='destructive'
                   size='sm'
                   onClick={() => handleUninstall(addon.modId)}
                   disabled={uninstalling === addon.modId}
                 >
                   {uninstalling === addon.modId ? 'Removing...' : 'Uninstall'}
-                </WoWButton>
+                </Button>
               </div>
             </div>
           ))}
-        </WoWPanel>
+        </Card>
       }
     </div>
   );

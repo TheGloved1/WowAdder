@@ -1,10 +1,11 @@
+import { Card } from '@/components/ui/card';
+import { WoWSeparator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { open } from '@tauri-apps/plugin-dialog';
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import changelogRaw from '../../CHANGELOG.md?raw';
 import { version } from '../../package.json';
-import WoWDivider from '../components/wow/WoWDivider';
-import WoWPanel from '../components/wow/WoWPanel';
 import { addWatchFolder, getDefaultDownloadsFolder, removeWatchFolder } from '../services/addonManager';
 import type { ColorScheme } from '../services/preferences';
 import { loadPrefs, savePrefs } from '../services/preferences';
@@ -63,18 +64,22 @@ export default function SettingsPage() {
     savePrefs({ colorScheme: scheme });
   }
 
-  async function handleSupportDevsToggle() {
-    const next = !supportDevs;
-    setSupportDevs(next);
-    savePrefs({ supportDevs: next });
+  async function handleSupportDevsToggle(checked: boolean) {
+    setSupportDevs(checked);
+    savePrefs({ supportDevs: checked });
 
-    if (next && downloadWatchFolders.length === 0) {
+    if (checked && downloadWatchFolders.length === 0) {
       const defaultPath = await getDefaultDownloadsFolder();
       if (defaultPath) {
         setDownloadWatchFolders([defaultPath]);
         addWatchFolder(defaultPath);
       }
     }
+  }
+
+  function handleDeleteZipToggle(checked: boolean) {
+    setDeleteZipAfterInstall(checked);
+    savePrefs({ deleteZipAfterInstall: checked });
   }
 
   async function handleAddWatchFolder() {
@@ -96,17 +101,11 @@ export default function SettingsPage() {
     removeWatchFolder(path);
   }
 
-  function handleDeleteZipToggle() {
-    const next = !deleteZipAfterInstall;
-    setDeleteZipAfterInstall(next);
-    savePrefs({ deleteZipAfterInstall: next });
-  }
-
   return (
     <div className='mx-auto max-w-4xl px-4 py-8'>
       <h1 className='font-wow-heading text-wow-gold mb-6 text-2xl tracking-wider'>Settings</h1>
 
-      <WoWPanel className='p-6'>
+      <Card className='p-6'>
         <h2 className='font-wow-heading text-wow-gold mb-1 text-lg tracking-wider'>Color Scheme</h2>
         <p className='text-wow-text-dim mb-4 text-sm'>Choose the look and feel of WowAdder.</p>
 
@@ -144,7 +143,7 @@ export default function SettingsPage() {
           })}
         </div>
 
-        <WoWDivider className='my-6' />
+        <WoWSeparator className='my-6' />
 
         <h2 className='font-wow-heading text-wow-gold mb-1 text-lg tracking-wider'>Support Developers</h2>
         <p className='text-wow-text-dim mb-4 text-sm leading-relaxed'>
@@ -153,22 +152,7 @@ export default function SettingsPage() {
           automatically. This supports addon authors through CurseForge's ad impressions and download tracking.
         </p>
         <label className='flex cursor-pointer items-center gap-3'>
-          <button
-            role='switch'
-            aria-checked={supportDevs}
-            onClick={handleSupportDevsToggle}
-            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors duration-200 ${
-              supportDevs ?
-                'border-wow-border-gold-bright bg-wow-gold shadow-[0_0_6px_rgba(251,191,36,0.15)]'
-              : 'border-wow-border-light bg-wow-bg'
-            }`}
-          >
-            <span
-              className={`bg-wow-panel inline-block h-4 w-4 transform rounded-full transition-transform duration-200 ${
-                supportDevs ? 'translate-x-5.5' : 'translate-x-1'
-              }`}
-            />
-          </button>
+          <Switch checked={supportDevs} onCheckedChange={handleSupportDevsToggle} />
           <span className={`font-wow-heading text-sm tracking-wider ${supportDevs ? 'text-wow-gold' : 'text-wow-text-dim'}`}>
             {supportDevs ? 'Supporting developers' : 'Not supporting developers'}
           </span>
@@ -211,22 +195,7 @@ export default function SettingsPage() {
             </div>
 
             <label className='mt-4 flex cursor-pointer items-center gap-3'>
-              <button
-                role='switch'
-                aria-checked={deleteZipAfterInstall}
-                onClick={handleDeleteZipToggle}
-                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors duration-200 ${
-                  deleteZipAfterInstall ?
-                    'border-wow-border-gold-bright bg-wow-gold shadow-[0_0_6px_rgba(251,191,36,0.15)]'
-                  : 'border-wow-border-light bg-wow-bg'
-                }`}
-              >
-                <span
-                  className={`bg-wow-panel inline-block h-4 w-4 transform rounded-full transition-transform duration-200 ${
-                    deleteZipAfterInstall ? 'translate-x-5.5' : 'translate-x-1'
-                  }`}
-                />
-              </button>
+              <Switch checked={deleteZipAfterInstall} onCheckedChange={handleDeleteZipToggle} />
               <span
                 className={`font-wow-heading text-sm tracking-wider ${deleteZipAfterInstall ? 'text-wow-gold' : 'text-wow-text-dim'}`}
               >
@@ -236,7 +205,7 @@ export default function SettingsPage() {
           </>
         )}
 
-        <WoWDivider className='my-6' />
+        <WoWSeparator className='my-6' />
 
         <h2 className='font-wow-heading text-wow-gold mb-1 text-lg tracking-wider'>About WowAdder</h2>
         <p className='text-wow-text-dim text-sm leading-relaxed'>
@@ -307,7 +276,7 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
-      </WoWPanel>
+      </Card>
     </div>
   );
 }

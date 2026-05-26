@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input';
 import { useEffect, useRef, useState } from 'react';
 
 interface PaginationProps {
@@ -81,7 +82,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange, clas
       );
     } else if (p === currentPage && editing) {
       items.push(
-        <input
+        <Input
           key={`edit-${p}`}
           ref={inputRef}
           type='number'
@@ -90,7 +91,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange, clas
           defaultValue={p + 1}
           onKeyDown={handleInputKeyDown}
           onBlur={handleEditSubmit}
-          className='bg-wow-panel border-wow-border-gold text-wow-text h-8 w-10 [appearance:textfield] rounded-sm border text-center text-xs focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
+          className='h-8 w-10 [appearance:textfield] text-center text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
         />,
       );
     } else {
@@ -116,7 +117,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange, clas
   }
 
   return (
-    <div className={`flex items-center gap-1 ${className}`}>
+    <div className={`flex items-center gap-0.5 pb-4 ${className}`}>
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 0}

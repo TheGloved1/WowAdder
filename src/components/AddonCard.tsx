@@ -1,6 +1,6 @@
 import { isAddonInstalled } from '../services/addonManager';
 import type { CF2Addon } from '../types/curseforge';
-import WoWBadge from './wow/WoWBadge';
+import { Badge } from './ui/badge';
 import WoWIconFrame from './wow/WoWIcon';
 
 interface AddonCardProps {
@@ -50,12 +50,12 @@ export default function AddonCard({ addon, onClick }: AddonCardProps) {
           </div>
           <p className='text-wow-text-dim mt-1 line-clamp-2 text-xs leading-relaxed'>{addon.summary}</p>
           <div className='mt-2 flex flex-wrap items-center gap-1.5'>
-            {installed && <WoWBadge variant='installed'>Installed</WoWBadge>}
-            {classNames.length > 0 && <WoWBadge variant='class'>{classNames[0]}</WoWBadge>}
-            {gameVersion && <WoWBadge variant='info'>{gameVersion}</WoWBadge>}
-            {latestRelease?.releaseType === 1 && <WoWBadge variant='release'>Release</WoWBadge>}
-            {latestRelease?.releaseType === 2 && <WoWBadge variant='beta'>Beta</WoWBadge>}
-            {latestRelease?.releaseType === 3 && <WoWBadge variant='alpha'>Alpha</WoWBadge>}
+            {installed && <Badge variant='installed'>Installed</Badge>}
+            {classNames.length > 0 && <Badge variant='class'>{classNames[0]}</Badge>}
+            {gameVersion && <Badge variant='info'>{gameVersion}</Badge>}
+            {latestRelease?.releaseType === 1 && <Badge variant='release'>Release</Badge>}
+            {latestRelease?.releaseType === 2 && <Badge variant='beta'>Beta</Badge>}
+            {latestRelease?.releaseType === 3 && <Badge variant='alpha'>Alpha</Badge>}
           </div>
         </div>
       </div>

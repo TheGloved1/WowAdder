@@ -1,3 +1,4 @@
+import { Progress } from '@/components/ui/progress';
 import { check } from '@tauri-apps/plugin-updater';
 import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
@@ -61,14 +62,7 @@ export default function Layout() {
           {updateState === 'downloading' && (
             <div className='flex w-full max-w-sm items-center gap-3'>
               <span className='font-wow-heading shrink-0'>Downloading v{updateVersion}</span>
-              <div className='bg-wow-panel border-wow-border-gold/30 relative h-2 flex-1 overflow-hidden rounded-sm border'>
-                <div
-                  className='from-wow-border-gold to-wow-gold absolute inset-0 bg-linear-to-r transition-all duration-200'
-                  style={{
-                    width: totalSize > 0 ? `${Math.min(100, (downloaded / totalSize) * 100)}%` : '0%',
-                  }}
-                />
-              </div>
+              <Progress value={totalSize > 0 ? Math.min(100, (downloaded / totalSize) * 100) : 0} className='flex-1' />
               <span className='text-wow-text-dim w-12 shrink-0 text-right text-xs'>
                 {totalSize > 0 ?
                   `${Math.min(99, Math.round((downloaded / totalSize) * 100))}%`

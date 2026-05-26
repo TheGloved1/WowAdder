@@ -1,3 +1,5 @@
+import { Input } from '@/components/ui/input';
+
 interface SearchBarProps {
   value: string;
   onChange: (value: string) => void;
@@ -27,12 +29,12 @@ export default function SearchBar({ value, onChange, onSearch }: SearchBarProps)
             d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'
           />
         </svg>
-        <input
+        <Input
           type='text'
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder='Search addons...'
-          className='bg-wow-panel border-wow-border-light text-wow-text placeholder-wow-text-muted focus:border-wow-border-gold w-full rounded-sm border py-2 pr-4 pl-10 text-sm transition-all focus:shadow-[0_0_6px_rgba(161,98,7,0.15)] focus:outline-none'
+          className='py-2 pr-4 pl-10'
         />
       </div>
     </form>

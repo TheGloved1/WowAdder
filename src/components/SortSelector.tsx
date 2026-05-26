@@ -1,3 +1,5 @@
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+
 export interface SortOption {
   label: string;
   field: number;
@@ -21,17 +23,18 @@ export default function SortSelector({ value, onChange }: SortSelectorProps) {
   return (
     <div className='flex items-center gap-1.5'>
       <label className='text-wow-text-muted font-wow-heading shrink-0 text-xs tracking-wider uppercase'>Sort:</label>
-      <select
-        value={SORT_OPTIONS.findIndex((o) => o.field === value.field && o.order === value.order)}
-        onChange={(e) => onChange(SORT_OPTIONS[Number(e.target.value)])}
-        className='bg-wow-panel border-wow-border-light text-wow-text-dim focus:border-wow-border-gold hover:border-wow-border-gold/50 cursor-pointer appearance-none rounded-sm border px-2.5 py-1.5 text-xs transition-colors focus:outline-none'
-      >
-        {SORT_OPTIONS.map((opt, i) => (
-          <option key={i} value={i}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
+      <Select value={JSON.stringify(value)} onValueChange={(v) => onChange(JSON.parse(v))}>
+        <SelectTrigger className='w-[140px]'>
+          <span>{value.label}</span>
+        </SelectTrigger>
+        <SelectContent>
+          {SORT_OPTIONS.map((opt) => (
+            <SelectItem key={opt.label} value={JSON.stringify(opt)}>
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

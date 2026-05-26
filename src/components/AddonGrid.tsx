@@ -1,3 +1,4 @@
+import { Skeleton } from '@/components/ui/skeleton';
 import type { CF2Addon } from '../types/curseforge';
 import AddonCard from './AddonCard';
 
@@ -34,13 +35,13 @@ export default function AddonGrid({ addons, onAddonClick, loading, error }: Addo
     return (
       <div className='grid gap-3'>
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className='bg-wow-panel border-wow-border-light animate-pulse rounded-sm border p-3.5'>
+          <div key={i} className='border-wow-border-light rounded-sm border p-3.5'>
             <div className='flex gap-3.5'>
-              <div className='bg-wow-panel-hover h-16 w-16 rounded-sm' />
+              <Skeleton className='h-16 w-16' />
               <div className='flex-1 space-y-2'>
-                <div className='bg-wow-panel-hover h-4 w-2/3 rounded' />
-                <div className='bg-wow-panel-hover/70 h-3 w-full rounded' />
-                <div className='bg-wow-panel-hover/70 h-3 w-1/2 rounded' />
+                <Skeleton className='h-4 w-2/3' />
+                <Skeleton className='h-3 w-full' />
+                <Skeleton className='h-3 w-1/2' />
               </div>
             </div>
           </div>
