@@ -1,17 +1,18 @@
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { WoWSeparator } from '@/components/ui/separator';
-import { useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AddonGrid from '../components/AddonGrid';
 import FiltersSidebar from '../components/FiltersSidebar';
 import Pagination from '../components/Pagination';
 import SearchBar from '../components/SearchBar';
 import type { SortOption } from '../components/SortSelector';
-import SortSelector from '../components/SortSelector';
+import SortSelector, { SORT_OPTIONS } from '../components/SortSelector';
+import { useBrowseParams } from '../hooks/useBrowseParams';
 import { useGameVersions, useSearchMods } from '../hooks/useCurseforge';
 import { getCategoryTree, getClientStatus } from '../services/curseforge';
-import { loadPrefs, savePrefs } from '../services/preferences';
+import { savePrefs } from '../services/preferences';
 
 function sortVersionsDesc(versions: string[]): string[] {
   return [...versions].sort((a, b) => {
@@ -26,24 +27,17 @@ function sortVersionsDesc(versions: string[]): string[] {
   });
 }
 
-function parseCsvParam(value: string | null): string[] {
-  if (!value) return [];
-  return value.split(',').filter(Boolean);
-}
-
-function parseNumCsvParam(value: string | null): number[] {
-  if (!value) return [];
-  return value
-    .split(',')
-    .filter(Boolean)
-    .map(Number)
-    .filter((n) => !isNaN(n));
-}
-
 export default function BrowsePage() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const prefs = loadPrefs();
+  const { params, updateParams, clearAll, buildUrl } = useBrowseParams();
+
+  const [searchQuery, setSearchQuery] = useState(params.q);
+  useEffect(() => {
+    setSearchQuery(params.q);
+  }, [params.q]);
+
+  const sortOption: SortOption =
+    SORT_OPTIONS.find((o) => o.field === params.sortField && o.order === params.sortOrder) ?? SORT_OPTIONS[0];
 
   const versionsQuery = useGameVersions(1);
   const rawVersions = versionsQuery.data ?? [];
@@ -52,25 +46,9 @@ export default function BrowsePage() {
     return sortVersionsDesc(rawVersions.flatMap((vt) => vt.versions));
   }, [rawVersions]);
 
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>(
-    parseNumCsvParam(searchParams.get('categoryIds')),
-  );
-  const [excludedCategoryIds, setExcludedCategoryIds] = useState<number[]>(
-    parseNumCsvParam(searchParams.get('excludedCategoryIds')),
-  );
-  const [selectedVersions, setSelectedVersions] = useState<string[]>(() => {
-    const urlVersions = parseCsvParam(searchParams.get('versions'));
-    return urlVersions.length > 0 ? urlVersions : prefs.versions;
-  });
-  const [sortOption, setSortOption] = useState<SortOption>(prefs.sortOption);
-
-  const [currentPage, setCurrentPage] = useState(Math.max(0, (Number(searchParams.get('page')) || 1) - 1));
-  const [pageSize, setPageSize] = useState(Number(searchParams.get('pageSize')) || prefs.pageSize);
-
-  const apiGameVersion = selectedVersions.length > 0 ? selectedVersions.join(',') : undefined;
-  const hasClientFilters = selectedCategoryIds.length > 0 || excludedCategoryIds.length > 0;
-  const effectivePageSize = hasClientFilters ? Math.min(pageSize * 3, 50) : pageSize;
+  const apiGameVersion = params.versions.length > 0 ? params.versions.join(',') : undefined;
+  const hasClientFilters = params.categoryIds.length > 0 || params.excludedCategoryIds.length > 0;
+  const effectivePageSize = hasClientFilters ? Math.min(params.pageSize * 3, 50) : params.pageSize;
 
   const searchModsQuery = useSearchMods({
     gameVersionTypeId: 517,
@@ -78,7 +56,7 @@ export default function BrowsePage() {
     searchFilter: searchQuery || undefined,
     sortField: String(sortOption.field),
     sortOrder: sortOption.order,
-    index: currentPage * effectivePageSize,
+    index: params.page * effectivePageSize,
     pageSize: effectivePageSize,
   });
 
@@ -90,152 +68,63 @@ export default function BrowsePage() {
   const addons = useMemo(() => {
     let result = apiAddons;
 
-    if (selectedCategoryIds.length > 0) {
-      result = result.filter((mod) => mod.categories?.some((c: { id: number }) => selectedCategoryIds.includes(c.id)));
+    if (params.categoryIds.length > 0) {
+      result = result.filter((mod) => mod.categories?.some((c: { id: number }) => params.categoryIds.includes(c.id)));
     }
 
-    if (excludedCategoryIds.length > 0) {
-      result = result.filter((mod) => !mod.categories?.some((c: { id: number }) => excludedCategoryIds.includes(c.id)));
+    if (params.excludedCategoryIds.length > 0) {
+      result = result.filter(
+        (mod) => !mod.categories?.some((c: { id: number }) => params.excludedCategoryIds.includes(c.id)),
+      );
     }
 
-    return result.slice(0, pageSize);
-  }, [apiAddons, selectedCategoryIds, excludedCategoryIds, pageSize]);
+    return result.slice(0, params.pageSize);
+  }, [apiAddons, params.categoryIds, params.excludedCategoryIds, params.pageSize]);
 
   const categories = getCategoryTree();
   const clientStatus = getClientStatus();
 
-  function syncUrl(
-    q: string,
-    catIds: number[],
-    exclCatIds: number[],
-    vers: string[],
-    sf: number,
-    so: string,
-    ps: number,
-    page: number,
-  ) {
-    const params = new URLSearchParams();
-    if (q) params.set('q', q);
-    if (catIds.length) params.set('categoryIds', catIds.join(','));
-    if (exclCatIds.length) params.set('excludedCategoryIds', exclCatIds.join(','));
-    if (vers.length) params.set('versions', vers.join(','));
-    params.set('sortField', String(sf));
-    params.set('sortOrder', so);
-    if (ps !== 20) params.set('pageSize', String(ps));
-    if (page > 0) params.set('page', String(page + 1));
-    setSearchParams(params, { replace: false });
-  }
-
   function handleSearch() {
-    setCurrentPage(0);
-    syncUrl(
-      searchQuery,
-      selectedCategoryIds,
-      excludedCategoryIds,
-      selectedVersions,
-      sortOption.field,
-      sortOption.order,
-      pageSize,
-      0,
-    );
+    updateParams({ q: searchQuery, page: 0 });
   }
 
   function handleCategoryChange(selected: number[], excluded: number[]) {
-    setSelectedCategoryIds(selected);
-    setExcludedCategoryIds(excluded);
-    setCurrentPage(0);
-    syncUrl(searchQuery, selected, excluded, selectedVersions, sortOption.field, sortOption.order, pageSize, 0);
+    updateParams({ categoryIds: selected, excludedCategoryIds: excluded, page: 0 });
   }
 
   function handleVersionChange(versions: string[]) {
-    setSelectedVersions(versions);
-    setCurrentPage(0);
-    syncUrl(
-      searchQuery,
-      selectedCategoryIds,
-      excludedCategoryIds,
-      versions,
-      sortOption.field,
-      sortOption.order,
-      pageSize,
-      0,
-    );
+    updateParams({ versions, page: 0 });
     savePrefs({ versions });
   }
 
   function handleSortChange(option: SortOption) {
-    setSortOption(option);
-    setCurrentPage(0);
-    syncUrl(
-      searchQuery,
-      selectedCategoryIds,
-      excludedCategoryIds,
-      selectedVersions,
-      option.field,
-      option.order,
-      pageSize,
-      0,
-    );
+    updateParams({ sortField: option.field, sortOrder: option.order, page: 0 });
     savePrefs({ sortOption: option });
   }
 
   function handleAddonClick(id: number) {
-    const params = new URLSearchParams();
-    if (searchQuery) params.set('q', searchQuery);
-    if (selectedCategoryIds.length) params.set('categoryIds', selectedCategoryIds.join(','));
-    if (excludedCategoryIds.length) params.set('excludedCategoryIds', excludedCategoryIds.join(','));
-    if (selectedVersions.length) params.set('versions', selectedVersions.join(','));
-    params.set('sortField', String(sortOption.field));
-    params.set('sortOrder', sortOption.order);
-    if (pageSize !== 20) params.set('pageSize', String(pageSize));
-    if (currentPage > 0) params.set('page', String(currentPage + 1));
-    const versionParam = selectedVersions.length > 0 ? `?version=${encodeURIComponent(selectedVersions.join(','))}` : '';
+    const versionParam = params.versions.length > 0 ? `?version=${encodeURIComponent(params.versions.join(','))}` : '';
     navigate(`/addon/${id}${versionParam}`, {
-      state: { searchParams: Object.fromEntries(params) },
+      state: { searchParams: Object.fromEntries(buildUrl()) },
     });
   }
 
-  function handlePageChange(newPage: number) {
-    setCurrentPage(newPage);
-    syncUrl(
-      searchQuery,
-      selectedCategoryIds,
-      excludedCategoryIds,
-      selectedVersions,
-      sortOption.field,
-      sortOption.order,
-      pageSize,
-      newPage,
-    );
+  function handlePageChange(page: number) {
+    updateParams({ page });
   }
 
-  function handlePageSizeChange(size: number) {
-    setPageSize(size);
-    setCurrentPage(0);
-    syncUrl(
-      searchQuery,
-      selectedCategoryIds,
-      excludedCategoryIds,
-      selectedVersions,
-      sortOption.field,
-      sortOption.order,
-      size,
-      0,
-    );
-    savePrefs({ pageSize: size });
+  function handlePageSizeChange(pageSize: number) {
+    updateParams({ pageSize, page: 0 });
+    savePrefs({ pageSize });
   }
 
   function handleClearAll() {
-    setSelectedCategoryIds([]);
-    setExcludedCategoryIds([]);
-    setSelectedVersions([]);
-    setCurrentPage(0);
-    syncUrl(searchQuery, [], [], [], sortOption.field, sortOption.order, pageSize, 0);
+    clearAll();
     savePrefs({ versions: [] });
   }
 
   const totalPages = pagination ? Math.ceil(pagination.totalCount / effectivePageSize) : 0;
-  const isFilterAccurate = selectedCategoryIds.length === 0 && excludedCategoryIds.length === 0;
+  const isFilterAccurate = params.categoryIds.length === 0 && params.excludedCategoryIds.length === 0;
 
   return (
     <div className='mx-auto max-w-7xl px-4 py-6'>
@@ -264,10 +153,10 @@ export default function BrowsePage() {
       <div className='flex gap-6'>
         <FiltersSidebar
           categories={categories}
-          selectedCategoryIds={selectedCategoryIds}
-          excludedCategoryIds={excludedCategoryIds}
+          selectedCategoryIds={params.categoryIds}
+          excludedCategoryIds={params.excludedCategoryIds}
           onCategoryChange={handleCategoryChange}
-          selectedVersions={selectedVersions}
+          selectedVersions={params.versions}
           onVersionChange={handleVersionChange}
           onClearAll={handleClearAll}
           versions={sortedVersions}
@@ -278,8 +167,8 @@ export default function BrowsePage() {
               {totalPages > 0 ?
                 <div className='flex shrink-0 items-center gap-0.5'>
                   <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 0}
+                    onClick={() => handlePageChange(params.page - 1)}
+                    disabled={params.page === 0}
                     className='text-wow-text-dim hover:text-wow-gold flex size-6 items-center justify-center p-0 transition-colors disabled:cursor-not-allowed disabled:opacity-30'
                     aria-label='Previous Page'
                   >
@@ -295,16 +184,16 @@ export default function BrowsePage() {
                   </button>
                   {isFilterAccurate ?
                     <span className='text-wow-text-dim font-wow-heading min-w-18 text-center text-xs tracking-wider'>
-                      <span className='text-wow-gold'>{currentPage + 1}</span>
+                      <span className='text-wow-gold'>{params.page + 1}</span>
                       <span className='text-wow-text-muted'> of {totalPages}</span>
                     </span>
                   : <span className='text-wow-text-dim font-wow-heading min-w-12 text-center text-xs tracking-wider'>
-                      <span className='text-wow-gold'>{currentPage + 1}</span>
+                      <span className='text-wow-gold'>{params.page + 1}</span>
                     </span>
                   }
                   <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage >= totalPages - 1}
+                    onClick={() => handlePageChange(params.page + 1)}
+                    disabled={params.page >= totalPages - 1}
                     className='text-wow-text-dim hover:text-wow-gold flex size-6 items-center justify-center p-0 transition-colors disabled:cursor-not-allowed disabled:opacity-30'
                     aria-label='Next Page'
                   >
@@ -348,9 +237,9 @@ export default function BrowsePage() {
               <div className='flex-1' />
               <div className='flex items-center gap-4'>
                 <SortSelector value={sortOption} onChange={handleSortChange} />
-                <Select value={String(pageSize)} onValueChange={(v) => handlePageSizeChange(Number(v))}>
+                <Select value={String(params.pageSize)} onValueChange={(v) => handlePageSizeChange(Number(v))}>
                   <SelectTrigger className='w-[80px]'>
-                    <span>{pageSize}</span>
+                    <span>{params.pageSize}</span>
                   </SelectTrigger>
                   <SelectContent>
                     {[10, 20, 50].map((s) => (
@@ -365,7 +254,7 @@ export default function BrowsePage() {
 
             <WoWSeparator className='mb-4' />
 
-            {!loading && addons.length === 0 && apiAddons.length > 0 && (hasClientFilters || selectedVersions.length > 0) ?
+            {!loading && addons.length === 0 && apiAddons.length > 0 && (hasClientFilters || params.versions.length > 0) ?
               <p className='text-wow-text-muted py-12 text-center text-sm'>
                 No results match your filters on this page. Try a different page or clear filters.
               </p>
@@ -373,7 +262,7 @@ export default function BrowsePage() {
 
             {totalPages > 1 && (
               <div className='border-wow-border-light mt-6 flex justify-center border-t pt-4'>
-                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
+                <Pagination currentPage={params.page} totalPages={totalPages} onPageChange={handlePageChange} />
               </div>
             )}
           </Card>

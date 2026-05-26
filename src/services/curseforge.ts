@@ -7,7 +7,6 @@ const BASE_URL = 'https://api.curseforge.com';
 let client: CFV2Client | null = null;
 
 function getClient(): CFV2Client {
-  console.log('Getting CurseForge client...');
   if (!client) {
     if (!apiKey || apiKey === 'your_curseforge_api_key_here') {
       throw new Error('CurseForge API key not configured. Set VITE_CURSEFORGE_API_KEY in your .env file.');
@@ -26,7 +25,6 @@ export function getClientStatus(): { configured: boolean; keyPreview: string } {
 }
 
 export async function getGameVersions(gameId: number = 1) {
-  console.log('Getting game versions...');
   const c = getClient();
   const result = await c.getGameVersions(gameId);
   return result.data?.data ?? [];
