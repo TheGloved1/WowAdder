@@ -5,7 +5,7 @@ export type ColorScheme = 'default' | 'emerald' | 'crimson' | 'nightelf' | 'fros
 const PREFIX = 'wowadder_pref_';
 
 interface Preferences {
-  version: string;
+  versions: string[];
   pageSize: number;
   sortOption: SortOption;
   colorScheme: ColorScheme;
@@ -15,7 +15,7 @@ interface Preferences {
 }
 
 const DEFAULTS: Preferences = {
-  version: '',
+  versions: [],
   pageSize: 20,
   sortOption: { label: 'Most Downloads', field: 6, order: 'desc' },
   colorScheme: 'default',

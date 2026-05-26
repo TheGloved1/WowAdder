@@ -1,6 +1,8 @@
+import type { CF2Addon, CF2File, CF2Pagination } from 'curseforge-v2';
 import { CFV2Client } from 'curseforge-v2';
 
 const apiKey = import.meta.env.VITE_CURSEFORGE_API_KEY;
+const BASE_URL = 'https://api.curseforge.com';
 
 let client: CFV2Client | null = null;
 
@@ -41,8 +43,31 @@ export async function searchMods(params: {
   index?: number;
   pageSize?: number;
 }) {
-  console.log('Searching mods...');
   const c = getClient();
+
+  const versions = params.gameVersion?.split(',').filter(Boolean) ?? [];
+
+  if (versions.length > 1) {
+    const url = new URL(`${BASE_URL}/v1/mods/search`);
+    url.searchParams.set('gameId', String(params.gameId ?? 1));
+    url.searchParams.set('gameVersions', versions.join(','));
+    if (params.searchFilter) url.searchParams.set('searchFilter', params.searchFilter);
+    if (params.gameVersionTypeId) url.searchParams.set('gameVersionTypeId', String(params.gameVersionTypeId));
+    if (params.categoryId) url.searchParams.set('categoryId', String(params.categoryId));
+    if (params.sortField) url.searchParams.set('sortField', params.sortField);
+    if (params.sortOrder) url.searchParams.set('sortOrder', params.sortOrder);
+    if (params.index !== undefined) url.searchParams.set('index', String(params.index));
+    if (params.pageSize !== undefined) url.searchParams.set('pageSize', String(params.pageSize));
+
+    const response = await fetch(url.toString(), { headers: { 'x-api-key': apiKey! } });
+    if (!response.ok) throw new Error(`CurseForge API returned ${response.status}`);
+    const json = await response.json();
+    return {
+      addons: (json.data ?? []) as CF2Addon[],
+      pagination: json.pagination as CF2Pagination | undefined,
+    };
+  }
+
   const result = await c.searchMods({
     gameId: params.gameId ?? 1,
     searchFilter: params.searchFilter,
@@ -71,7 +96,6 @@ export async function getFeaturedMods(gameVersionTypeId?: number, excludedModIds
 }
 
 export async function getMod(modId: number) {
-  console.log('Getting mod...');
   const c = getClient();
   const result = await c.getMod(modId);
   return result.data?.data;
@@ -86,18 +110,18 @@ export async function getModFiles(
     pageSize?: number;
   },
 ) {
-  console.log('Getting mod files...');
-  const c = getClient();
-  const result = await c.getModFiles({
-    modId,
-    gameVersion: params?.gameVersion,
-    gameVersionTypeId: params?.gameVersionTypeId,
-    index: params?.index ?? 0,
-    pageSize: params?.pageSize ?? 20,
-  });
+  const url = new URL(`${BASE_URL}/v1/mods/${modId}/files`);
+  if (params?.gameVersion) url.searchParams.set('gameVersion', params.gameVersion);
+  if (params?.gameVersionTypeId) url.searchParams.set('gameVersionTypeId', String(params.gameVersionTypeId));
+  if (params?.index !== undefined) url.searchParams.set('index', String(params.index));
+  if (params?.pageSize !== undefined) url.searchParams.set('pageSize', String(params.pageSize));
+
+  const response = await fetch(url.toString(), { headers: { 'x-api-key': apiKey! } });
+  if (!response.ok) throw new Error(`CurseForge API returned ${response.status}`);
+  const json = await response.json();
   return {
-    files: result.data?.data ?? [],
-    pagination: result.data?.pagination,
+    files: (json.data ?? []) as CF2File[],
+    pagination: json.pagination as CF2Pagination | undefined,
   };
 }
 
@@ -215,4 +239,67 @@ export function getCategories(): CategoryOption[] {
       }))
       .sort((a, b) => a.name.localeCompare(b.name)),
   ];
+}
+
+const parentCategoryIds = [1020, 1019, 1085, 1063, 1015, 1004, 1060, 1016] as const;
+
+export const categoryChildren: Record<number, number[]> = {
+  1020: [1036, 1502, 1023, 1024, 1021, 1242, 1022, 1026, 1027, 1025, 1029, 1028],
+  1019: [1034, 1035, 1032, 1033],
+  1085: [1243],
+  1063: [1066, 1064, 1065],
+  1015: [1042, 1103, 1043, 1044, 1045, 1046, 1047, 1048, 1049, 1059, 1050, 1051, 1052, 1053, 1054],
+  1004: [1040, 1041],
+  1060: [1171],
+  1016: [1039, 1037],
+};
+
+const childToParent = new Map<number, number>();
+for (const [parentId, children] of Object.entries(categoryChildren)) {
+  for (const childId of children) {
+    childToParent.set(childId, Number(parentId));
+  }
+}
+
+export interface CategoryTreeNode {
+  id: number;
+  name: string;
+  parentId: number | null;
+}
+
+export function getCategoryTree(): CategoryTreeNode[] {
+  const result: CategoryTreeNode[] = [];
+  const added = new Set<number>();
+
+  for (const parentId of parentCategoryIds) {
+    const name = categoryNames[parentId];
+    if (name) {
+      result.push({ id: parentId, name, parentId: null });
+      added.add(parentId);
+      for (const childId of categoryChildren[parentId]) {
+        const childName = categoryNames[childId];
+        if (childName) {
+          result.push({ id: childId, name: childName, parentId });
+          added.add(childId);
+        }
+      }
+    }
+  }
+
+  for (const [idStr, name] of Object.entries(categoryNames)) {
+    const id = Number(idStr);
+    if (id !== 0 && !added.has(id)) {
+      result.push({ id, name, parentId: null });
+    }
+  }
+
+  return result;
+}
+
+export function getParentCategoryIds(): Set<number> {
+  return new Set(parentCategoryIds);
+}
+
+export function getCategoryParent(childId: number): number | null {
+  return childToParent.get(childId) ?? null;
 }
