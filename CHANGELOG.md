@@ -1,3 +1,14 @@
+## [0.3.19] - 2026-05-26
+
+### Changed
+
+- **browse**: centralize browse state as URL-driven single source of truth
+
+### Other
+
+- **deps**: update Cargo.lock
+- **readme**: reorder navigation, update prerequisites, add API key warning, refine tech stack
+
 ## [0.3.18] - 2026-05-26
 
 ### Added
