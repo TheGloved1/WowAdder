@@ -1,3 +1,13 @@
+## [0.3.20] - 2026-05-26
+
+### Added
+
+- add curseforge:// protocol handler and heading font picker
+
+### Changed
+
+- **curseforge**: switch to namespace import for discoverable type references
+
 ## [0.3.19] - 2026-05-26
 
 ### Changed
