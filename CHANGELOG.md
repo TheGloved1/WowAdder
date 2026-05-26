@@ -1,3 +1,14 @@
+## [0.3.18] - 2026-05-26
+
+### Added
+
+- add shadcn/ui component library foundation
+- **filters**: add multi-category/version sidebar with exclude support
+
+### Changed
+
+- **ui**: replace custom wow components with shadcn/ui
+
 ## [0.3.17] - 2026-05-25
 
 ### Added
