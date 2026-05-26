@@ -119,6 +119,12 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            for url in args.iter().filter(|a| a.starts_with("curseforge://")) {
+                let _ = app.emit("deep-link-url", url.to_string());
+            }
+        }))
         .invoke_handler(tauri::generate_handler![install_addon, import_zip, open_folder, get_downloads_dir])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

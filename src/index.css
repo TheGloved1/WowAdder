@@ -20,7 +20,17 @@
   --color-wow-quality-orange: #ff8000;
   --color-wow-danger: #c41e3a;
   --color-wow-divider: #3f3a36;
-  --font-wow-heading: 'IM Fell English', serif;
+  /* ── Heading Font ── (uncomment one, comment the rest) */
+  /* --font-wow-heading: 'Cinzel', serif; */
+  /* --font-wow-heading: 'Cinzel Decorative', serif; */
+  /* --font-wow-heading: 'Macondo Swash Caps', serif; */
+  /* --font-wow-heading: 'MedievalSharp', cursive; */
+  /* --font-wow-heading: 'Uncial Antiqua', cursive; */
+  --font-wow-heading: 'Caudex', serif;
+  /* --font-wow-heading: 'Almendra', serif; */
+  /* --font-wow-heading: 'IM Fell English', serif; */
+  /* --font-wow-heading: 'Metamorphous', serif; */
+  /* --font-wow-heading: 'Pirata One', cursive; */
   --font-wow-body: 'Inter', system-ui, sans-serif;
 
   /* shadcn-compatible tokens */

@@ -18,6 +18,8 @@
     "fs:allow-mkdir",
     "store:default",
     "updater:default",
+    "deep-link:default",
+    "deep-link:allow-is-registered",
     "core:window:allow-set-always-on-top",
     "core:window:allow-set-focus",
     "core:window:allow-show",

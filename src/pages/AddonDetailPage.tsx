@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { WoWSeparator } from '@/components/ui/separator';
 import WoWIconFrame from '../components/wow/WoWIcon';
+import type { BrowseParams } from '../hooks/useBrowseParams';
+import { buildBrowseUrl } from '../hooks/useBrowseParams';
 import { useMod, useModDescription, useModFiles } from '../hooks/useCurseforge';
 import {
   addWatchFolder,
@@ -35,12 +37,12 @@ export default function AddonDetailPage() {
   const navigate = useNavigate();
   const selectedVersion = searchParams.get('version') || '';
   const selectedVersions = selectedVersion ? selectedVersion.split(',').filter(Boolean) : [];
+  const autoInstallFileId = Number(searchParams.get('fileId')) || null;
   const location = useLocation();
-  const backParams = location.state?.searchParams as Record<string, string> | undefined;
+  const backParams = location.state?.browseParams as BrowseParams | undefined;
   const handleBack = () => {
     if (backParams) {
-      const sp = new URLSearchParams(backParams as any);
-      navigate({ pathname: '/', search: sp.toString() });
+      navigate({ pathname: '/', search: buildBrowseUrl(backParams).toString() });
     } else {
       navigate(-1);
     }
@@ -88,6 +90,15 @@ export default function AddonDetailPage() {
     resultCount: Math.min(allFilteredFiles.length - currentPage * PAGE_SIZE, PAGE_SIZE),
     totalCount: allFilteredFiles.length,
   };
+
+  const autoInstallRef = useRef(false);
+  useEffect(() => {
+    if (!autoInstallFileId || autoInstallRef.current || !addon || filesLoading || rawFiles.length === 0) return;
+    const file = rawFiles.find((f) => f.id === autoInstallFileId);
+    if (!file) return;
+    autoInstallRef.current = true;
+    handleInstallFile(file);
+  }, [autoInstallFileId, addon, filesLoading, rawFiles]);
 
   useEffect(() => {
     if (!addon) return;

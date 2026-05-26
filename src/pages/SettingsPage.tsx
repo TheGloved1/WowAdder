@@ -1,4 +1,5 @@
 import { Card } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WoWSeparator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { open } from '@tauri-apps/plugin-dialog';
@@ -7,8 +8,8 @@ import ReactMarkdown from 'react-markdown';
 import changelogRaw from '../../CHANGELOG.md?raw';
 import { version } from '../../package.json';
 import { addWatchFolder, getDefaultDownloadsFolder, removeWatchFolder } from '../services/addonManager';
-import type { ColorScheme } from '../services/preferences';
-import { loadPrefs, savePrefs } from '../services/preferences';
+import type { ColorScheme, HeadingFont } from '../services/preferences';
+import { HEADING_FONTS, loadPrefs, savePrefs } from '../services/preferences';
 
 interface SchemeOption {
   id: ColorScheme;
@@ -57,6 +58,14 @@ export default function SettingsPage() {
   const [supportDevs, setSupportDevs] = useState(prefs.supportDevs);
   const [downloadWatchFolders, setDownloadWatchFolders] = useState<string[]>(prefs.downloadWatchFolders);
   const [deleteZipAfterInstall, setDeleteZipAfterInstall] = useState(prefs.deleteZipAfterInstall);
+  const [deepLink, setDeepLink] = useState(prefs.deepLink);
+  const [headingFont, setHeadingFont] = useState<HeadingFont>(prefs.headingFont);
+
+  function handleFontChange(font: HeadingFont) {
+    setHeadingFont(font);
+    document.documentElement.style.setProperty('--font-wow-heading', `'${font}', serif`);
+    savePrefs({ headingFont: font });
+  }
 
   function handleSchemeChange(scheme: ColorScheme) {
     setColorScheme(scheme);
@@ -80,6 +89,11 @@ export default function SettingsPage() {
   function handleDeleteZipToggle(checked: boolean) {
     setDeleteZipAfterInstall(checked);
     savePrefs({ deleteZipAfterInstall: checked });
+  }
+
+  function handleDeepLinkToggle(checked: boolean) {
+    setDeepLink(checked);
+    savePrefs({ deepLink: checked });
   }
 
   async function handleAddWatchFolder() {
@@ -143,6 +157,26 @@ export default function SettingsPage() {
           })}
         </div>
 
+        <div className='mt-6'>
+          <h2 className='font-wow-heading text-wow-gold mb-1 text-lg tracking-wider'>Heading Font</h2>
+          <p className='text-wow-text-dim mb-4 text-sm'>Choose the font for titles and headings.</p>
+
+          <Select value={headingFont} onValueChange={(v) => handleFontChange(v as HeadingFont)}>
+            <SelectTrigger className='w-64'>
+              <SelectValue>
+                <span style={{ fontFamily: `'${headingFont}', serif` }}>{HEADING_FONTS[headingFont]}</span>
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.entries(HEADING_FONTS) as [HeadingFont, string][]).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  <span style={{ fontFamily: `'${value}', serif` }}>{label}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         <WoWSeparator className='my-6' />
 
         <h2 className='font-wow-heading text-wow-gold mb-1 text-lg tracking-wider'>Support Developers</h2>
@@ -204,6 +238,22 @@ export default function SettingsPage() {
             </label>
           </>
         )}
+
+        <WoWSeparator className='my-6' />
+
+        <h2 className='font-wow-heading text-wow-gold mb-1 text-lg tracking-wider'>Make WowAdder Default</h2>
+        <p className='text-wow-text-dim mb-4 text-sm leading-relaxed'>
+          When enabled, WowAdder will intercept{' '}
+          <code className='text-wow-gold bg-wow-bg rounded-sm px-1'>curseforge://</code> protocol links from your browser.
+          This allows the &ldquo;Install with CurseForge App&rdquo; buttons on addon pages to install directly into WowAdder
+          instead of the official CurseForge client.
+        </p>
+        <label className='flex cursor-pointer items-center gap-3'>
+          <Switch checked={deepLink} onCheckedChange={handleDeepLinkToggle} />
+          <span className={`font-wow-heading text-sm tracking-wider ${deepLink ? 'text-wow-gold' : 'text-wow-text-dim'}`}>
+            {deepLink ? 'Handling CurseForge install links' : 'Not handling CurseForge install links'}
+          </span>
+        </label>
 
         <WoWSeparator className='my-6' />
 
