@@ -19,9 +19,9 @@
 </p>
 
 <p align="center">
+  <a href="#getting-started">Getting Started</a> •
   <a href="#features">Features</a> •
   <a href="#how-its-different">How It's Different</a> •
-  <a href="#getting-started">Getting Started</a> •
   <a href="#tech-stack">Tech Stack</a>
 </p>
 
@@ -92,7 +92,7 @@ Choose from 5 color schemes inspired by World of Warcraft: Classic (gold), Emera
 
 ### Prerequisites
 
-- Windows (for the MSI installer — other platforms can build from source)
+- Windows (other platforms can build from source)
 
 ### Installation
 
@@ -101,6 +101,8 @@ Choose from 5 color schemes inspired by World of Warcraft: Classic (gold), Emera
 3. Launch WowAdder and select your World of Warcraft `Interface/AddOns` folder
 
 ### Building from Source
+
+> **WARNING**: Building from source requires you to use your own CurseForge API key. You can get one by creating an account at [CurseForge for Studios](https://studios.curseforge.com/) and then going to [CurseForge Console](https://console.curseforge.com/#/api-keys).
 
 ```bash
 bun install
@@ -114,15 +116,14 @@ Requires [Bun](https://bun.sh/) and [Rust](https://www.rust-lang.org/).
 
 ## Tech Stack
 
-| Layer             | Technology                                                     |
-| ----------------- | -------------------------------------------------------------- |
-| Desktop Framework | [Tauri v2](https://v2.tauri.app/) (Rust backend)               |
-| Frontend          | React 19 + TypeScript                                          |
-| Data Fetching     | TanStack Query v5                                              |
-| Styling           | Tailwind CSS v4                                                |
-| API Client        | [`curseforge-v2`](https://www.npmjs.com/package/curseforge-v2) |
-| Routing           | React Router v7                                                |
-| Markdown          | react-markdown                                                 |
-| Build Tool        | Vite 7                                                         |
-| Package Manager   | Bun                                                            |
-| Installer         | WiX MSI                                                        |
+| Layer             | Technology                                                                                                                             |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Desktop Framework | [Tauri v2](https://v2.tauri.app/) (Rust backend)                                                                                       |
+| Frontend          | React + TypeScript                                                                                                                     |
+| Data Fetching     | TanStack Query                                                                                                                         |
+| Styling           | Tailwind CSS                                                                                                                           |
+| API               | [`CurseForge API`](https://docs.curseforge.com/rest-api/) via [`curseforge-v2`](https://www.npmjs.com/package/curseforge-v2) and fetch |
+| Routing           | React Router                                                                                                                           |
+| Markdown          | react-markdown                                                                                                                         |
+| Build Tool        | Vite                                                                                                                                   |
+| Package Manager   | Bun                                                                                                                                    |
