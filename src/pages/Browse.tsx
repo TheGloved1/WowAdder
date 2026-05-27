@@ -1,6 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { WoWSeparator } from '@/components/ui/separator';
+import { usePreferences } from '@/hooks/usePreferences';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AddonGrid from '../components/AddonGrid';
@@ -11,8 +12,8 @@ import type { SortOption } from '../components/SortSelector';
 import SortSelector, { SORT_OPTIONS } from '../components/SortSelector';
 import { useBrowseParams } from '../hooks/useBrowseParams';
 import { useGameVersions, useSearchMods } from '../hooks/useCurseforge';
+import { useDebounce } from '../hooks/useDebounce';
 import { cf, getCategoryTree, getClientStatus } from '../services/curseforge';
-import { savePrefs } from '../services/preferences';
 
 function sortVersionsDesc(versions: string[]): string[] {
   return [...versions].sort((a, b) => {
@@ -30,11 +31,15 @@ function sortVersionsDesc(versions: string[]): string[] {
 export default function Browse() {
   const navigate = useNavigate();
   const { params, updateParams, clearAll } = useBrowseParams();
+  const { prefs, updatePrefs: savePrefs } = usePreferences();
 
-  const [searchQuery, setSearchQuery] = useState(params.q);
+  const [searchQuery, setSearchQuery] = useState(prefs.searchQuery || '');
+
+  const debouncedSearch = useDebounce(searchQuery, 300);
+
   useEffect(() => {
-    setSearchQuery(params.q);
-  }, [params.q]);
+    savePrefs({ searchQuery: debouncedSearch });
+  }, [debouncedSearch]);
 
   const sortOption: SortOption =
     SORT_OPTIONS.find((o) => o.field === params.sortField && o.order === params.sortOrder) ?? SORT_OPTIONS[0];
@@ -53,7 +58,7 @@ export default function Browse() {
   const searchModsQuery = useSearchMods({
     gameVersionTypeId: cf.CF2WowGameVersionType.Retail,
     gameVersion: apiGameVersion,
-    searchFilter: searchQuery || undefined,
+    searchFilter: debouncedSearch || undefined,
     sortField: String(sortOption.field),
     sortOrder: sortOption.order,
     index: params.page * effectivePageSize,
@@ -218,6 +223,11 @@ export default function Browse() {
                       : pagination.totalCount.toLocaleString()}
                     </span>{' '}
                     Results
+                    {searchQuery.length > 0 ?
+                      <>
+                        &nbsp;found for <span className='text-wow-gold font-wow-heading'>"{searchQuery}"</span>
+                      </>
+                    : ''}
                   </span>
                 : <span className='text-wow-text-dim text-xs'>
                     <span className='text-wow-gold font-wow-heading'>{addons.length}</span>

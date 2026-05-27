@@ -61,7 +61,7 @@ export function useBrowseParams(): UseBrowseParamsReturn {
   const { prefs, updatePrefs } = usePreferences();
 
   const [params, setParams] = useState<BrowseParams>(() => ({
-    q: text.parse(searchParams.get('q')),
+    q: text.parse(searchParams.get('q')) || prefs.searchQuery || DEFAULTS.q,
     categoryIds: csvNumber.parse(searchParams.get('categoryIds')),
     excludedCategoryIds: csvNumber.parse(searchParams.get('excludedCategoryIds')),
     versions: (() => {

@@ -37,6 +37,7 @@ export type Preferences = {
   downloadWatchFolders: string[];
   deleteZipAfterInstall: boolean;
   deepLink: boolean;
+  searchQuery: string;
 };
 
 export const DEFAULTS: Preferences = {
@@ -49,6 +50,7 @@ export const DEFAULTS: Preferences = {
   downloadWatchFolders: [],
   deleteZipAfterInstall: true,
   deepLink: false,
+  searchQuery: '',
 };
 
 export function loadPrefs(): Preferences {

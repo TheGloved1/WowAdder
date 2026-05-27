@@ -29,12 +29,27 @@ export default function SearchBar({ value, onChange, onSearch }: SearchBarProps)
             d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'
           />
         </svg>
+        {value && (
+          <button
+            type='button'
+            onClick={() => {
+              onChange('');
+              onSearch();
+            }}
+            className='text-wow-text-muted hover:text-wow-text absolute top-1/2 right-3 -translate-y-1/2'
+            aria-label='Clear search'
+          >
+            <svg className='h-4 w-4' viewBox='0 0 24 24' fill='none' stroke='currentColor'>
+              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
+            </svg>
+          </button>
+        )}
         <Input
           type='text'
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder='Search addons...'
-          className='py-2 pr-4 pl-10'
+          className={`py-2 ${value ? 'pr-10' : 'pr-4'} pl-10`}
         />
       </div>
     </form>
