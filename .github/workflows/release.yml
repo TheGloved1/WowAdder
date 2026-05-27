@@ -39,6 +39,15 @@ jobs:
       - name: Install frontend dependencies
         run: bun install
 
+      # setup caching for the Rust target folder
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            src-tauri
+          add-job-id-key: 'false'
+          add-rust-environment-hash-key: 'false'
+
       - name: Sync version to Cargo.toml and tauri.conf.json
         run: bun scripts/sync-version.js
 
@@ -69,4 +78,3 @@ jobs:
           body_path: changelogs/${{ github.ref_name }}.md
           generate_release_notes: true
           draft: false
-          prerelease: false
