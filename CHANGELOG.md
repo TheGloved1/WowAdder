@@ -1,3 +1,13 @@
+## [0.3.22] - 2026-05-27
+
+### Added
+
+- **filters**: show active filter counts per section in sidebar
+
+### Changed
+
+- **preferences**: delegate localStorage to generic useLocalStorage hook
+
 ## [0.3.21] - 2026-05-27
 
 ### Changed
