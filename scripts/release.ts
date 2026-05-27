@@ -28,27 +28,96 @@ function fail(msg: string): never {
   process.exit(1);
 }
 
-function generateChangelog(next: string): { changelogEntry: string; releaseEntry: string } {
-  execSync('git fetch --tags --force', { stdio: 'ignore' });
+// ---------------------------------------------------------------------------
+// Version parsing
+// ---------------------------------------------------------------------------
 
-  let lastTag = '';
+interface VersionParsed {
+  major: number;
+  minor: number;
+  patch: number;
+  prerelease: string | null;
+  prereleaseNum: number;
+}
+
+function parseVersion(v: string): VersionParsed {
+  const match = v.match(/^(\d+)\.(\d+)\.(\d+)(?:-(.+?)\.(\d+))?$/);
+  if (!match) fail(`Invalid version: "${v}"`);
+  return {
+    major: parseInt(match[1], 10),
+    minor: parseInt(match[2], 10),
+    patch: parseInt(match[3], 10),
+    prerelease: match[4] ?? null,
+    prereleaseNum: match[5] ? parseInt(match[5], 10) : 0,
+  };
+}
+
+function getLastNonBetaTag(): string {
+  execSync('git fetch --tags --force', { stdio: 'ignore' });
   try {
-    lastTag =
-      execSync('git tag --list "v*" --sort=-creatordate', {
-        encoding: 'utf-8',
-      })
-        .trim()
-        .split('\n')[0] ?? '';
+    const tags = execSync('git tag --list "v*" --sort=-creatordate', { encoding: 'utf-8' })
+      .trim()
+      .split('\n')
+      .filter(Boolean);
+    for (const tag of tags) {
+      const ver = tag.replace(/^v/, '');
+      if (!/-/.test(ver)) return tag;
+    }
+    return '';
   } catch {
-    // no prior tags
+    return '';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Version resolution
+// ---------------------------------------------------------------------------
+
+function resolveNextVersion(current: string, bump: string, betaModifier: boolean): string {
+  const parsed = parseVersion(current);
+
+  switch (bump) {
+    case 'major':
+      return betaModifier ? `${parsed.major + 1}.0.0-beta.1` : `${parsed.major + 1}.0.0`;
+    case 'minor':
+      return betaModifier ? `${parsed.major}.${parsed.minor + 1}.0-beta.1` : `${parsed.major}.${parsed.minor + 1}.0`;
+    case 'patch':
+      return betaModifier
+        ? `${parsed.major}.${parsed.minor}.${parsed.patch + 1}-beta.1`
+        : `${parsed.major}.${parsed.minor}.${parsed.patch + 1}`;
+    case 'beta':
+      if (parsed.prerelease === null)
+        fail('Not a beta version. Use "patch beta", "minor beta", or "major beta" to start a beta series.');
+      return `${parsed.major}.${parsed.minor}.${parsed.patch}-beta.${parsed.prereleaseNum + 1}`;
+    default:
+      return bump;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Changelog generation
+// ---------------------------------------------------------------------------
+
+function generateChangelog(
+  next: string,
+  baseTag?: string,
+): { changelogEntry: string; releaseEntry: string } {
+  let rangeStart = baseTag;
+  if (rangeStart === undefined) {
+    try {
+      rangeStart =
+        execSync('git tag --list "v*" --sort=-creatordate', { encoding: 'utf-8' })
+          .trim()
+          .split('\n')[0] ?? '';
+    } catch {
+      rangeStart = '';
+    }
   }
 
-  const range = lastTag ? `${lastTag}..HEAD` : 'HEAD';
+  const range = rangeStart ? `${rangeStart}..HEAD` : 'HEAD';
   const today = new Date().toISOString().slice(0, 10);
 
-  const log = execSync(`git log ${range} --pretty=format:"%s" --reverse`, {
-    encoding: 'utf-8',
-  });
+  const log = execSync(`git log ${range} --pretty=format:"%s" --reverse`, { encoding: 'utf-8' });
   const lines = log.split('\n').filter(Boolean);
 
   const added: string[] = [];
@@ -129,12 +198,18 @@ function listUndoLogs(): { version: string; path: string }[] {
     .filter((f: string) => f.endsWith('.json'))
     .map((f: string) => ({ version: f.replace(/^v/, '').replace(/\.json$/, ''), path: join(UNDO_DIR, f) }))
     .sort((a: { version: string }, b: { version: string }) => {
-      const parse = (v: string) => v.split('.').map(Number);
-      const [am, an, ap] = parse(a.version);
-      const [bm, bn, bp] = parse(b.version);
-      return am - bm || an - bn || ap - bp;
-    })
-    .reverse();
+      const pa = parseVersion(a.version);
+      const pb = parseVersion(b.version);
+      const base = pb.major - pa.major || pb.minor - pa.minor || pb.patch - pa.patch;
+      if (base !== 0) return base;
+      if (pa.prerelease && !pb.prerelease) return 1;
+      if (!pa.prerelease && pb.prerelease) return -1;
+      if (pa.prerelease && pb.prerelease) {
+        if (pa.prerelease !== pb.prerelease) return pa.prerelease.localeCompare(pb.prerelease);
+        return pb.prereleaseNum - pa.prereleaseNum;
+      }
+      return 0;
+    });
 }
 
 function restoreFiles(log: UndoLog) {
@@ -182,7 +257,6 @@ async function undoRelease() {
     process.exit(0);
   }
 
-  // Verify we're on the right branch
   const branch = execSync('git branch --show-current', { encoding: 'utf-8' }).trim();
   if (branch !== log.branch) {
     const sw = await ask(`  Not on '${log.branch}' (on '${branch}'). Switch? (y/N) `);
@@ -213,7 +287,6 @@ async function undoRelease() {
   execSync(`git push origin :refs/tags/${log.tag}`, { encoding: 'utf-8' });
   ok('Pushed');
 
-  // Clean up undo log after successful revert
   rmSync(selected.path);
   ok(`Cleaned up ${selected.path}`);
 
@@ -222,42 +295,89 @@ async function undoRelease() {
   console.log(`${GREEN}${'='.repeat(40)}${NC}\n`);
 }
 
+// ---------------------------------------------------------------------------
+// Usage
+// ---------------------------------------------------------------------------
+
+function showUsage() {
+  console.log(`
+Usage: ./scripts/release.ts [<bump> [beta]] [flags]
+
+Bump commands:
+  major              Bump major version
+  minor              Bump minor version
+  patch              Bump patch version
+  beta               Increment beta number (must already be beta)
+  x.y.z              Explicit version
+  x.y.z-beta.N       Explicit beta version
+
+  Append "beta" to start a beta:  patch beta, minor beta, major beta
+  No arguments on a beta version strips it to stable.
+
+Flags:
+  --no-changelog     Skip changelog generation
+  --no-push          Commit and tag locally, skip git push
+  --undo             Revert the most recent release
+  --help, -h, help   Show this help
+
+Changelog preview:
+  changelog                      Preview changelog for current version
+  changelog patch beta           Preview changelog for next version
+
+Examples:
+  ./scripts/release.ts patch              # 0.3.25 -> 0.3.26
+  ./scripts/release.ts patch beta         # 0.3.25 -> 0.3.26-beta.1
+  ./scripts/release.ts beta               # 0.3.26-beta.1 -> 0.3.26-beta.2
+  ./scripts/release.ts                    # 0.3.26-beta.2 -> 0.3.26 (stable)
+  ./scripts/release.ts minor              # 0.3.25 -> 0.4.0
+  ./scripts/release.ts 0.4.0              # exact version
+  ./scripts/release.ts changelog patch    # preview changelog for next patch
+  ./scripts/release.ts --undo             # revert the most recent release
+  ./scripts/release.ts patch --no-push    # bump locally without pushing
+`);
+}
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+
 async function main() {
-  // ---------------------------------------------------------------------------
-  // Parse argument
-  // ---------------------------------------------------------------------------
-
   const args = process.argv.slice(2);
-  const isUndo = args.includes('--undo');
-  const skipChangelog = args.includes('--no-changelog');
-  const changelogOnly = args.includes('changelog');
-  const arg = args.find((a) => a !== '--no-changelog' && a !== 'changelog' && a !== '--undo') ?? '';
 
-  if (isUndo) {
+  // Help
+  if (args.includes('--help') || args.includes('-h') || args.includes('help')) {
+    showUsage();
+    rl.close();
+    process.exit(0);
+  }
+
+  // Undo
+  if (args.includes('--undo')) {
     await undoRelease();
     rl.close();
     process.exit(0);
   }
-  if (!arg && !changelogOnly) {
-    console.log(`
-Usage: ./scripts/release.ts [major|minor|patch|x.y.z|changelog|--undo]
 
-Examples:
-  ./scripts/release.ts patch       # 0.1.8 -> 0.1.9
-  ./scripts/release.ts minor       # 0.1.8 -> 0.2.0
-  ./scripts/release.ts major       # 0.1.8 -> 1.0.0
-  ./scripts/release.ts 0.2.0       # explicit version
-  ./scripts/release.ts changelog         # preview changelog for next release
-  ./scripts/release.ts changelog patch   # preview changelog with a patch bump
-  ./scripts/release.ts --undo            # revert the most recent release
-`);
-    process.exit(1);
-  }
+  // Extract flags
+  const skipChangelog = args.includes('--no-changelog');
+  const noPush = args.includes('--no-push');
+  const flags = new Set(['--undo', '--no-changelog', '--no-push', '--help', '-h']);
+  const positional = args.filter((a) => !flags.has(a));
 
-  // ---------------------------------------------------------------------------
-  // Check required tools
-  // ---------------------------------------------------------------------------
+  const isChangelogMode = positional[0] === 'changelog';
+  const releaseArgs = isChangelogMode ? positional.slice(1) : positional;
 
+  const betaModifier = releaseArgs.includes('beta');
+  const nonBeta = releaseArgs.filter((a) => a !== 'beta');
+  const hasNoBump = nonBeta.length === 0;
+  const bumpArg = nonBeta[0] ?? '';
+
+  let bump: string;
+  if (hasNoBump && !betaModifier) bump = '';
+  else if (hasNoBump && betaModifier) bump = 'beta';
+  else bump = bumpArg;
+
+  // Validate tools
   for (const cmd of ['git']) {
     try {
       execSync(`where ${cmd}`, { stdio: 'ignore' });
@@ -270,40 +390,40 @@ Examples:
     }
   }
 
-  // ---------------------------------------------------------------------------
   // Read current version
-  // ---------------------------------------------------------------------------
-
   const pkg = JSON.parse(readFileSync('package.json', 'utf-8'));
   const current = pkg.version as string;
-  const [maj, min, pat] = current.split('.').map(Number);
+  const parsed = parseVersion(current);
 
+  // Resolve next version
   let next: string;
-  if (arg === 'major') {
-    next = `${maj + 1}.0.0`;
-  } else if (arg === 'minor') {
-    next = `${maj}.${min + 1}.0`;
-  } else if (arg === 'patch') {
-    next = `${maj}.${min}.${pat + 1}`;
-  } else if (/^\d+\.\d+\.\d+$/.test(arg)) {
-    next = arg;
-  } else if (changelogOnly && !arg) {
-    next = current;
+  if (bump === '') {
+    if (parsed.prerelease === null)
+      fail('Already a stable release. Use major/minor/patch to bump, or specify an explicit version.');
+    next = `${parsed.major}.${parsed.minor}.${parsed.patch}`;
+  } else if (['major', 'minor', 'patch', 'beta'].includes(bump)) {
+    next = resolveNextVersion(current, bump, betaModifier);
+  } else if (/^\d+\.\d+\.\d+(-beta\.\d+)?$/.test(bump)) {
+    if (betaModifier) fail('Cannot combine "beta" modifier with an explicit version. Specify the full version instead.');
+    next = bump;
   } else {
-    fail('Invalid version format. Use x.y.z (e.g., 1.2.3)');
+    fail(`Invalid version or bump type: "${bump}"`);
   }
 
   console.log(`${BLUE}Release${NC}`);
   console.log(`  current : ${DIM}${current}${NC}`);
   console.log(`  next    : ${GREEN}${next}${NC}\n`);
 
-  // ---------------------------------------------------------------------------
-  // Changelog-only mode — preview without making changes
-  // ---------------------------------------------------------------------------
-
-  if (changelogOnly) {
+  // Changelog-only mode
+  if (isChangelogMode) {
     step('Generating changelog preview');
-    const { changelogEntry, releaseEntry } = generateChangelog(next);
+
+    execSync('git fetch --tags --force', { stdio: 'ignore' });
+
+    const isStableFromBeta = parsed.prerelease !== null && !next.includes('-');
+    const baseTag = isStableFromBeta ? getLastNonBetaTag() : undefined;
+    const { changelogEntry, releaseEntry } = generateChangelog(next, baseTag);
+
     console.log(`\n${BLUE}=== CHANGELOG.md entry ===${NC}\n`);
     console.log(changelogEntry);
     console.log(`\n${BLUE}=== Release body (changelogs/v${next}.md) ===${NC}\n`);
@@ -312,21 +432,14 @@ Examples:
     process.exit(0);
   }
 
-  // ---------------------------------------------------------------------------
   // Pre-flight checks
-  // ---------------------------------------------------------------------------
-
   step('Running pre-flight checks');
 
-  const status = execSync('git status --porcelain', {
-    encoding: 'utf-8',
-  }).trim();
+  const status = execSync('git status --porcelain', { encoding: 'utf-8' }).trim();
   if (status) fail('Uncommitted changes detected. Commit or stash them first.');
   ok('Working tree clean');
 
-  const branch = execSync('git branch --show-current', {
-    encoding: 'utf-8',
-  }).trim();
+  const branch = execSync('git branch --show-current', { encoding: 'utf-8' }).trim();
   if (branch !== 'main') {
     console.log(`  ${YELLOW}warning${NC} You are on branch '${branch}', not 'main'.`);
     const reply = await ask('  Continue anyway? (y/N) ');
@@ -334,38 +447,31 @@ Examples:
       console.log('Aborted.');
       process.exit(0);
     }
-  } // end else: changelog generation
+  }
 
-  // ---------------------------------------------------------------------------
   // Confirm
-  // ---------------------------------------------------------------------------
-
   const proceed = await ask(`Proceed with release v${next}? (Y/n) `);
   if (checkYesOrNo(proceed)) {
     console.log('Aborted.');
     process.exit(0);
   }
 
-  // ---------------------------------------------------------------------------
-  // Snapshot files before any changes (for undo log)
-  // ---------------------------------------------------------------------------
+  const isBetaRelease = next.includes('-');
+  const isStableFromBeta = parsed.prerelease !== null && !next.includes('-');
 
+  // Snapshot files before any changes (for undo log)
   const snapshotFiles = [
     'package.json',
     'src-tauri/Cargo.toml',
     'src-tauri/Cargo.lock',
     'src-tauri/tauri.conf.json',
-    ...(skipChangelog ? [] : ['CHANGELOG.md']),
+    ...(skipChangelog || isBetaRelease ? [] : ['CHANGELOG.md']),
   ];
   const fileSnapshot = captureFileSnapshot(snapshotFiles);
 
-  // ---------------------------------------------------------------------------
   // Bump versions
-  // ---------------------------------------------------------------------------
-
   step('Updating version numbers');
 
-  // package.json
   pkg.version = next;
   writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
   ok('package.json');
@@ -376,39 +482,43 @@ Examples:
     fail('Failed to sync version: ' + error);
   }
 
-  // ---------------------------------------------------------------------------
-  // Generate changelog
-  // ---------------------------------------------------------------------------
-
+  // Changelog
   if (skipChangelog) {
     ok('SKIP — changelog generation disabled');
   } else {
     step('Generating changelog');
-    const { changelogEntry, releaseEntry } = generateChangelog(next);
 
-    // Insert into CHANGELOG.md
-    const changelogPath = 'CHANGELOG.md';
-    if (existsSync(changelogPath)) {
-      const changelog = readFileSync(changelogPath, 'utf-8');
-      if (changelog.startsWith('## [')) {
-        writeFileSync(changelogPath, changelogEntry + '\n\n' + changelog);
-      } else {
-        const marker = '\n## [';
-        const idx = changelog.indexOf(marker);
-        if (idx !== -1) {
-          const before = changelog.slice(0, idx);
-          const after = changelog.slice(idx);
-          writeFileSync(changelogPath, before + '\n\n' + changelogEntry + '\n' + after);
-        } else {
-          writeFileSync(changelogPath, changelog.trimEnd() + '\n\n' + changelogEntry + '\n');
-        }
-      }
+    // For stable releases from beta, aggregate all commits since last non-beta tag
+    const baseTag = isStableFromBeta ? getLastNonBetaTag() : undefined;
+    const { changelogEntry, releaseEntry } = generateChangelog(next, baseTag);
+
+    if (isBetaRelease) {
+      ok('SKIP — CHANGELOG.md not updated for beta releases');
     } else {
-      writeFileSync(changelogPath, changelogEntry + '\n');
+      // Insert into CHANGELOG.md
+      const changelogPath = 'CHANGELOG.md';
+      if (existsSync(changelogPath)) {
+        const changelog = readFileSync(changelogPath, 'utf-8');
+        if (changelog.startsWith('## [')) {
+          writeFileSync(changelogPath, changelogEntry + '\n\n' + changelog);
+        } else {
+          const marker = '\n## [';
+          const idx = changelog.indexOf(marker);
+          if (idx !== -1) {
+            const before = changelog.slice(0, idx);
+            const after = changelog.slice(idx);
+            writeFileSync(changelogPath, before + '\n\n' + changelogEntry + '\n' + after);
+          } else {
+            writeFileSync(changelogPath, changelog.trimEnd() + '\n\n' + changelogEntry + '\n');
+          }
+        }
+      } else {
+        writeFileSync(changelogPath, changelogEntry + '\n');
+      }
+      ok('CHANGELOG.md');
     }
-    ok('CHANGELOG.md');
 
-    // Write tag-specific changelog for GitHub release body
+    // Write tag-specific changelog
     const changelogsDir = 'changelogs';
     if (!existsSync(changelogsDir)) {
       mkdirSync(changelogsDir, { recursive: true });
@@ -423,21 +533,23 @@ Examples:
 
     const looksGood = await ask('Does the changelog look good? (Y/n) ');
     if (checkYesOrNo(looksGood)) {
+      const fileList = [
+        'package.json',
+        ...(isBetaRelease ? [] : ['CHANGELOG.md']),
+        `changelogs/v${next}.md`,
+      ];
       console.log(`
-Edit CHANGELOG.md manually, then run:
-  git add package.json CHANGELOG.md
+Edit files manually, then run:
+  git add ${fileList.join(' ')}
   git commit -m "chore: release v${next}"
   git tag -a v${next} -m "Release v${next}"
-  git push origin main --tags
+  ${noPush ? '# (--no-push enabled)' : `git push origin ${branch} --tags`}
 `);
       process.exit(0);
     }
-  } // end else: changelog generation
+  }
 
-  // ---------------------------------------------------------------------------
   // Git commit and tag
-  // ---------------------------------------------------------------------------
-
   step('Creating release commit');
 
   const filesToAdd = [
@@ -445,7 +557,8 @@ Edit CHANGELOG.md manually, then run:
     'src-tauri/Cargo.toml',
     'src-tauri/Cargo.lock',
     'src-tauri/tauri.conf.json',
-    ...(skipChangelog ? [] : ['CHANGELOG.md', `changelogs/v${next}.md`]),
+    ...(skipChangelog ? [] : [`changelogs/v${next}.md`]),
+    ...(skipChangelog || isBetaRelease ? [] : ['CHANGELOG.md']),
   ];
   execSync(`git add ${filesToAdd.join(' ')}`, { encoding: 'utf-8' });
   execSync(`git commit -m "chore: release v${next}"`, { encoding: 'utf-8' });
@@ -466,23 +579,21 @@ Edit CHANGELOG.md manually, then run:
   ok(`.release-undo/v${next}.json`);
 
   step(`Creating tag v${next}`);
-  execSync(`git tag -a "v${next}" -m "Release v${next}"`, {
-    encoding: 'utf-8',
-  });
+  execSync(`git tag -a "v${next}" -m "Release v${next}"`, { encoding: 'utf-8' });
   ok('Tagged');
 
-  // ---------------------------------------------------------------------------
   // Push to remote
-  // ---------------------------------------------------------------------------
+  if (noPush) {
+    console.log(`\n${YELLOW}SKIP — push disabled by --no-push${NC}`);
+    console.log(`${DIM}To push manually:${NC}`);
+    console.log(`  git push origin ${branch} --tags`);
+  } else {
+    step(`Pushing to origin/${branch}`);
+    execSync(`git push origin ${branch} --tags`, { encoding: 'utf-8' });
+    ok('Pushed');
+  }
 
-  step(`Pushing to origin/${branch}`);
-  execSync(`git push origin ${branch} --tags`, { encoding: 'utf-8' });
-  ok('Pushed');
-
-  // ---------------------------------------------------------------------------
   // Done
-  // ---------------------------------------------------------------------------
-
   console.log(`\n${GREEN}========================================${NC}`);
   console.log(`${GREEN}  Released v${next}${NC}`);
   console.log(`${GREEN}========================================${NC}\n`);
