@@ -10,18 +10,14 @@ import { useUpdate } from './UpdateProvider';
 
 export default function Layout() {
   const location = useLocation();
-  const { updateState, updateVersion, updateBody, downloaded, totalSize, installUpdate, dismissUpdate } = useUpdate();
+  const { updateState, updateVersion, updateBody, downloaded, totalSize, showDialog, installUpdate, dismissDialog } =
+    useUpdate();
   const [changelogOpen, setChangelogOpen] = useState(false);
 
   return (
     <div className='text-wow-text flex min-h-screen flex-col'>
-      {updateState === 'available' && (
-        <Dialog
-          open
-          onOpenChange={(open) => {
-            if (!open) dismissUpdate();
-          }}
-        >
+      {showDialog && (
+        <Dialog open onOpenChange={(open) => { if (!open) dismissDialog(); }}>
           <DialogContent className='max-w-lg'>
             <DialogHeader>
               <DialogTitle>Update Available</DialogTitle>
@@ -67,7 +63,7 @@ export default function Layout() {
             </Collapsible>
 
             <div className='mt-5 flex justify-end gap-3'>
-              <Button variant='ghost' onClick={dismissUpdate}>
+              <Button variant='ghost' onClick={dismissDialog}>
                 Not Now
               </Button>
               <Button variant='primary' onClick={installUpdate}>

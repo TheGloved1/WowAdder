@@ -9,9 +9,10 @@ interface UpdateContextValue {
   updateBody: string;
   downloaded: number;
   totalSize: number;
+  showDialog: boolean;
   checkForUpdates: () => Promise<void>;
   installUpdate: () => Promise<void>;
-  dismissUpdate: () => void;
+  dismissDialog: () => void;
 }
 
 const UpdateContext = createContext<UpdateContextValue>({
@@ -20,9 +21,10 @@ const UpdateContext = createContext<UpdateContextValue>({
   updateBody: '',
   downloaded: 0,
   totalSize: 0,
+  showDialog: false,
   checkForUpdates: async () => {},
   installUpdate: async () => {},
-  dismissUpdate: () => {},
+  dismissDialog: () => {},
 });
 
 export function useUpdate() {
@@ -35,6 +37,7 @@ export function UpdateProvider({ children }: { children: React.ReactNode }) {
   const [updateState, setUpdateState] = useState<UpdateState>('idle');
   const [updateVersion, setUpdateVersion] = useState('');
   const [updateBody, setUpdateBody] = useState('');
+  const [showDialog, setShowDialog] = useState(false);
   const [downloaded, setDownloaded] = useState(0);
   const [totalSize, setTotalSize] = useState(0);
 
@@ -50,6 +53,7 @@ export function UpdateProvider({ children }: { children: React.ReactNode }) {
       updateRef.current = update;
       setUpdateVersion(update.version);
       setUpdateBody(typeof update.body === 'string' ? update.body : '');
+      setShowDialog(true);
       setUpdateState('available');
     } catch {
       setUpdateState('error');
@@ -60,6 +64,7 @@ export function UpdateProvider({ children }: { children: React.ReactNode }) {
   const installUpdate = useCallback(async () => {
     const update = updateRef.current;
     if (!update) return;
+    setShowDialog(false);
     clearTimeout(errorTimerRef.current);
     setUpdateState('downloading');
     setDownloaded(0);
@@ -80,10 +85,8 @@ export function UpdateProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const dismissUpdate = useCallback(() => {
-    updateRef.current?.close();
-    updateRef.current = null;
-    setUpdateState('idle');
+  const dismissDialog = useCallback(() => {
+    setShowDialog(false);
   }, []);
 
   useEffect(() => {
@@ -99,9 +102,10 @@ export function UpdateProvider({ children }: { children: React.ReactNode }) {
         updateBody,
         downloaded,
         totalSize,
+        showDialog,
         checkForUpdates,
         installUpdate,
-        dismissUpdate,
+        dismissDialog,
       }}
     >
       {children}
