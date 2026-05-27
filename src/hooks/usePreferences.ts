@@ -1,29 +1,19 @@
-import { useCallback, useEffect, useState } from 'react';
-import { DEFAULTS, loadPrefs, savePrefs } from '../services/preferences';
+import { useCallback } from 'react';
+import { DEFAULTS } from '../services/preferences';
 import type { Preferences } from '../services/preferences';
+import { useLocalStorage } from './useLocalStorage';
 
-const PREFIX = 'wowadder_pref_';
+const STORAGE_KEY = 'wowadder_pref_settings';
 
 export function usePreferences() {
-  const [prefs, setPrefs] = useState<Preferences>(() => loadPrefs());
+  const [prefs, setPrefs] = useLocalStorage<Preferences>(STORAGE_KEY, DEFAULTS);
 
   const updatePrefs = useCallback((patch: Partial<Preferences>) => {
     setPrefs((prev) => {
       const next = { ...prev, ...patch };
-      savePrefs(patch);
       return next;
     });
-  }, []);
-
-  useEffect(() => {
-    const handler = (e: StorageEvent) => {
-      if (e.key === `${PREFIX}settings`) {
-        setPrefs(loadPrefs());
-      }
-    };
-    window.addEventListener('storage', handler);
-    return () => window.removeEventListener('storage', handler);
-  }, []);
+  }, [setPrefs]);
 
   const reset = useCallback((key: keyof Preferences) => {
     updatePrefs({ [key]: DEFAULTS[key] } as Partial<Preferences>);
