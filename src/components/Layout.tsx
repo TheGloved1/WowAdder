@@ -70,13 +70,7 @@ export default function Layout() {
               <Button variant='ghost' onClick={dismissUpdate}>
                 Not Now
               </Button>
-              <Button
-                variant='primary'
-                onClick={() => {
-                  dismissUpdate();
-                  setTimeout(installUpdate, 100);
-                }}
-              >
+              <Button variant='primary' onClick={installUpdate}>
                 Install Update
               </Button>
             </div>

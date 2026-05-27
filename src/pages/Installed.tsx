@@ -18,7 +18,7 @@ import {
   uninstallAddon,
 } from '../services/addonManager';
 
-export default function InstalledPage() {
+export default function Installed() {
   const navigate = useNavigate();
   const [addonsFolder, setAddonsFolderState] = useState<string | null>(null);
   const [installed, setInstalled] = useState<InstalledAddon[]>([]);

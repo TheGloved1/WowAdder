@@ -54,7 +54,7 @@ const SCHEMES: SchemeOption[] = [
   },
 ];
 
-export default function SettingsPage() {
+export default function Settings() {
   const { prefs, updatePrefs } = usePreferences();
   const { updateState, updateVersion, downloaded, totalSize, checkForUpdates, installUpdate } = useUpdate();
   const [changelogOpen, setChangelogOpen] = useState(false);

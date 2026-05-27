@@ -27,7 +27,7 @@ function sortVersionsDesc(versions: string[]): string[] {
   });
 }
 
-export default function BrowsePage() {
+export default function Browse() {
   const navigate = useNavigate();
   const { params, updateParams, clearAll } = useBrowseParams();
 

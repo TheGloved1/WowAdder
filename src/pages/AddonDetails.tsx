@@ -40,7 +40,7 @@ const formatSize = (size: number) => {
   return `${size.toFixed(2)} ${units[index]}`;
 };
 
-export default function AddonDetailPage() {
+export default function AddonDetails() {
   const { id } = useParams<{ id: string }>();
   const modId = id ? Number(id) : undefined;
   const [searchParams] = useSearchParams();

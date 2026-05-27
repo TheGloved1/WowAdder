@@ -5,10 +5,10 @@ import { UpdateProvider } from './components/UpdateProvider';
 import { loadPrefs } from './services/preferences';
 
 const Layout = lazy(() => import('./components/Layout'));
-const BrowsePage = lazy(() => import('./pages/BrowsePage'));
-const AddonDetailPage = lazy(() => import('./pages/AddonDetailPage'));
-const InstalledPage = lazy(() => import('./pages/InstalledPage'));
-const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const Browse = lazy(() => import('./pages/Browse'));
+const AddonDetails = lazy(() => import('./pages/AddonDetails'));
+const Installed = lazy(() => import('./pages/Installed'));
+const Settings = lazy(() => import('./pages/Settings'));
 
 function DeepLinkListener() {
   const navigate = useNavigate();
@@ -105,10 +105,10 @@ function App() {
           >
             <Routes>
               <Route element={<Layout />}>
-                <Route path='/' element={<BrowsePage />} />
-                <Route path='/addon/:id' element={<AddonDetailPage />} />
-                <Route path='/installed' element={<InstalledPage />} />
-                <Route path='/settings' element={<SettingsPage />} />
+                <Route path='/' element={<Browse />} />
+                <Route path='/addon/:id' element={<AddonDetails />} />
+                <Route path='/installed' element={<Installed />} />
+                <Route path='/settings' element={<Settings />} />
               </Route>
             </Routes>
           </Suspense>
