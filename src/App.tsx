@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Route, Routes, useNavigate } from 'react-router-dom';
+import { UpdateProvider } from './components/UpdateProvider';
 import { loadPrefs } from './services/preferences';
 
 const Layout = lazy(() => import('./components/Layout'));
@@ -90,26 +91,28 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <DeepLinkListener />
-        <Suspense
-          fallback={
-            <div className='mx-auto max-w-4xl px-4 py-20'>
-              <div className='animate-pulse space-y-4'>
-                <div className='bg-wow-panel mx-auto h-8 w-1/3 rounded-sm' />
-                <div className='bg-wow-panel mx-auto h-4 w-2/3 rounded-sm' />
-                <div className='bg-wow-panel h-64 rounded-sm' />
+        <UpdateProvider>
+          <Suspense
+            fallback={
+              <div className='mx-auto max-w-4xl px-4 py-20'>
+                <div className='animate-pulse space-y-4'>
+                  <div className='bg-wow-panel mx-auto h-8 w-1/3 rounded-sm' />
+                  <div className='bg-wow-panel mx-auto h-4 w-2/3 rounded-sm' />
+                  <div className='bg-wow-panel h-64 rounded-sm' />
+                </div>
               </div>
-            </div>
-          }
-        >
-          <Routes>
-            <Route element={<Layout />}>
-              <Route path='/' element={<BrowsePage />} />
-              <Route path='/addon/:id' element={<AddonDetailPage />} />
-              <Route path='/installed' element={<InstalledPage />} />
-              <Route path='/settings' element={<SettingsPage />} />
-            </Route>
-          </Routes>
-        </Suspense>
+            }
+          >
+            <Routes>
+              <Route element={<Layout />}>
+                <Route path='/' element={<BrowsePage />} />
+                <Route path='/addon/:id' element={<AddonDetailPage />} />
+                <Route path='/installed' element={<InstalledPage />} />
+                <Route path='/settings' element={<SettingsPage />} />
+              </Route>
+            </Routes>
+          </Suspense>
+        </UpdateProvider>
       </BrowserRouter>
     </QueryClientProvider>
   );

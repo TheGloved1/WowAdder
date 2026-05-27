@@ -1,4 +1,5 @@
 import { Card } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WoWSeparator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
@@ -7,6 +8,7 @@ import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import changelogRaw from '../../CHANGELOG.md?raw';
 import { version } from '../../package.json';
+import { useUpdate } from '../components/UpdateProvider';
 import { usePreferences } from '../hooks/usePreferences';
 import { addWatchFolder, getDefaultDownloadsFolder, removeWatchFolder } from '../services/addonManager';
 import type { ColorScheme, HeadingFont } from '../services/preferences';
@@ -54,6 +56,7 @@ const SCHEMES: SchemeOption[] = [
 
 export default function SettingsPage() {
   const { prefs, updatePrefs } = usePreferences();
+  const { updateState, updateVersion, downloaded, totalSize, checkForUpdates, installUpdate } = useUpdate();
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [watchFolders, setWatchFolders] = useState<string[]>(prefs.downloadWatchFolders);
 
@@ -280,6 +283,56 @@ export default function SettingsPage() {
           >
             GitHub
           </a>
+        </div>
+
+        <div className='mt-4 flex items-center gap-3'>
+          {updateState === 'idle' && (
+            <button
+              onClick={checkForUpdates}
+              className='font-wow-heading text-wow-text-dim hover:text-wow-gold text-xs tracking-wider transition-colors'
+            >
+              Check for Updates
+            </button>
+          )}
+          {updateState === 'checking' && (
+            <div className='flex items-center gap-2'>
+              <div className='border-wow-gold h-3 w-3 animate-spin rounded-full border-2 border-t-transparent' />
+              <span className='text-wow-text-dim text-xs'>Checking for updates...</span>
+            </div>
+          )}
+          {updateState === 'available' && (
+            <div className='flex items-center gap-2'>
+              <button
+                onClick={installUpdate}
+                className='font-wow-heading text-wow-gold hover:text-wow-gold/80 text-xs tracking-wider transition-colors'
+              >
+                Update to {updateVersion}
+              </button>
+            </div>
+          )}
+          {updateState === 'downloading' && (
+            <div className='flex w-full max-w-xs items-center gap-2'>
+              <span className='text-wow-text-dim shrink-0 text-xs'>Downloading v{updateVersion}</span>
+              <Progress value={totalSize > 0 ? Math.min(100, (downloaded / totalSize) * 100) : 0} className='h-1.5 flex-1' />
+              <span className='text-wow-text-muted shrink-0 text-xs'>
+                {totalSize > 0 ? `${Math.round((downloaded / totalSize) * 100)}%` : '...'}
+              </span>
+            </div>
+          )}
+          {updateState === 'installing' && (
+            <div className='flex items-center gap-2'>
+              <div className='border-wow-gold h-3 w-3 animate-spin rounded-full border-2 border-t-transparent' />
+              <span className='text-wow-text-dim text-xs'>Installing v{updateVersion}...</span>
+            </div>
+          )}
+          {updateState === 'error' && (
+            <button
+              onClick={checkForUpdates}
+              className='font-wow-heading text-wow-danger hover:text-wow-danger/80 text-xs tracking-wider transition-colors'
+            >
+              Check failed — Retry
+            </button>
+          )}
         </div>
 
         <div className='mt-6'>
