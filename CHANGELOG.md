@@ -1,3 +1,9 @@
+## [0.3.28] - 2026-05-27
+
+### Changed
+
+- **pages**: drop 'Page' suffix from filenames and component names
+
 ## [0.3.27] - 2026-05-27
 
 Maintenance release.
