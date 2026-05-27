@@ -1,3 +1,10 @@
+## [0.3.23] - 2026-05-27
+
+### Added
+
+- **cards**: redesigned addon cards with richer info and iconography
+- **addon**: convert inline download dialog to shadcn Dialog component
+
 ## [0.3.22] - 2026-05-27
 
 ### Added
