@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { csvNumber, csvString, integer, text } from '../lib/url-serializers';
-import { loadPrefs } from '../services/preferences';
+import { usePreferences } from './usePreferences';
 
 export interface BrowseParams {
   q: string;
@@ -26,9 +26,9 @@ const DEFAULTS: BrowseParams = {
 };
 
 export function buildBrowseUrl(params: BrowseParams): URLSearchParams {
-  const sp = new URLSearchParams();
+  const urlSearchParams = new URLSearchParams();
   const set = (k: string, v: string | null) => {
-    if (v !== null) sp.set(k, v);
+    if (v !== null) urlSearchParams.set(k, v);
   };
 
   set('q', text.serialize(params.q));
@@ -40,7 +40,7 @@ export function buildBrowseUrl(params: BrowseParams): URLSearchParams {
   if (params.pageSize !== DEFAULTS.pageSize) set('pageSize', String(params.pageSize));
   if (params.page > 0) set('page', String(params.page + 1));
 
-  return sp;
+  return urlSearchParams;
 }
 
 function parsePage(raw: string | null): number {
@@ -58,7 +58,7 @@ interface UseBrowseParamsReturn {
 
 export function useBrowseParams(): UseBrowseParamsReturn {
   const [searchParams, setSearchParams] = useSearchParams();
-  const prefs = useRef(loadPrefs());
+  const { prefs, updatePrefs } = usePreferences();
 
   const [params, setParams] = useState<BrowseParams>(() => ({
     q: text.parse(searchParams.get('q')),
@@ -66,11 +66,11 @@ export function useBrowseParams(): UseBrowseParamsReturn {
     excludedCategoryIds: csvNumber.parse(searchParams.get('excludedCategoryIds')),
     versions: (() => {
       const url = csvString.parse(searchParams.get('versions'));
-      return url.length > 0 ? url : (prefs.current.versions ?? DEFAULTS.versions);
+      return url.length > 0 ? url : (prefs.versions ?? DEFAULTS.versions);
     })(),
-    sortField: integer.parse(searchParams.get('sortField')) || prefs.current.sortOption.field || DEFAULTS.sortField,
-    sortOrder: searchParams.get('sortOrder') || prefs.current.sortOption.order || DEFAULTS.sortOrder,
-    pageSize: integer.parse(searchParams.get('pageSize')) || prefs.current.pageSize || DEFAULTS.pageSize,
+    sortField: integer.parse(searchParams.get('sortField')) || prefs.sortOption.field || DEFAULTS.sortField,
+    sortOrder: searchParams.get('sortOrder') || prefs.sortOption.order || DEFAULTS.sortOrder,
+    pageSize: integer.parse(searchParams.get('pageSize')) || prefs.pageSize || DEFAULTS.pageSize,
     page: parsePage(searchParams.get('page')),
   }));
 
@@ -83,6 +83,18 @@ export function useBrowseParams(): UseBrowseParamsReturn {
     }
     setSearchParams(buildBrowseUrl(params), { replace: true });
   }, [params, setSearchParams]);
+
+  useEffect(() => {
+    if (!searchParams.get('versions') && prefs.versions.length > 0) {
+      setSearchParams(buildBrowseUrl({ ...params, versions: prefs.versions }), { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (isFirstRender.current) return;
+    updatePrefs({ versions: params.versions });
+  }, [params.versions, updatePrefs]);
 
   const setParam = useCallback(<K extends keyof BrowseParams>(key: K, value: BrowseParams[K]) => {
     setParams((prev) => ({ ...prev, [key]: value }));

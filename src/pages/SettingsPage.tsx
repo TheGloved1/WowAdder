@@ -9,7 +9,8 @@ import changelogRaw from '../../CHANGELOG.md?raw';
 import { version } from '../../package.json';
 import { addWatchFolder, getDefaultDownloadsFolder, removeWatchFolder } from '../services/addonManager';
 import type { ColorScheme, HeadingFont } from '../services/preferences';
-import { HEADING_FONTS, loadPrefs, savePrefs } from '../services/preferences';
+import { HEADING_FONTS } from '../services/preferences';
+import { usePreferences } from '../hooks/usePreferences';
 
 interface SchemeOption {
   id: ColorScheme;
@@ -52,48 +53,37 @@ const SCHEMES: SchemeOption[] = [
 ];
 
 export default function SettingsPage() {
-  const prefs = loadPrefs();
-  const [colorScheme, setColorScheme] = useState<ColorScheme>(prefs.colorScheme);
+  const { prefs, updatePrefs } = usePreferences();
   const [changelogOpen, setChangelogOpen] = useState(false);
-  const [supportDevs, setSupportDevs] = useState(prefs.supportDevs);
-  const [downloadWatchFolders, setDownloadWatchFolders] = useState<string[]>(prefs.downloadWatchFolders);
-  const [deleteZipAfterInstall, setDeleteZipAfterInstall] = useState(prefs.deleteZipAfterInstall);
-  const [deepLink, setDeepLink] = useState(prefs.deepLink);
-  const [headingFont, setHeadingFont] = useState<HeadingFont>(prefs.headingFont);
+  const [watchFolders, setWatchFolders] = useState<string[]>(prefs.downloadWatchFolders);
 
   function handleFontChange(font: HeadingFont) {
-    setHeadingFont(font);
     document.documentElement.style.setProperty('--font-wow-heading', `'${font}', serif`);
-    savePrefs({ headingFont: font });
+    updatePrefs({ headingFont: font });
   }
 
   function handleSchemeChange(scheme: ColorScheme) {
-    setColorScheme(scheme);
     document.documentElement.setAttribute('data-theme', scheme);
-    savePrefs({ colorScheme: scheme });
+    updatePrefs({ colorScheme: scheme });
   }
 
   async function handleSupportDevsToggle(checked: boolean) {
-    setSupportDevs(checked);
-    savePrefs({ supportDevs: checked });
-
-    if (checked && downloadWatchFolders.length === 0) {
+    updatePrefs({ supportDevs: checked });
+    if (checked && watchFolders.length === 0) {
       const defaultPath = await getDefaultDownloadsFolder();
       if (defaultPath) {
-        setDownloadWatchFolders([defaultPath]);
+        setWatchFolders([defaultPath]);
         addWatchFolder(defaultPath);
       }
     }
   }
 
   function handleDeleteZipToggle(checked: boolean) {
-    setDeleteZipAfterInstall(checked);
-    savePrefs({ deleteZipAfterInstall: checked });
+    updatePrefs({ deleteZipAfterInstall: checked });
   }
 
   function handleDeepLinkToggle(checked: boolean) {
-    setDeepLink(checked);
-    savePrefs({ deepLink: checked });
+    updatePrefs({ deepLink: checked });
   }
 
   async function handleAddWatchFolder() {
@@ -102,16 +92,16 @@ export default function SettingsPage() {
       multiple: false,
       title: 'Select a download folder to watch',
     });
-    if (selected && typeof selected === 'string' && !downloadWatchFolders.includes(selected)) {
-      const next = [...downloadWatchFolders, selected];
-      setDownloadWatchFolders(next);
+    if (selected && typeof selected === 'string' && !watchFolders.includes(selected)) {
+      const next = [...watchFolders, selected];
+      setWatchFolders(next);
       addWatchFolder(selected);
     }
   }
 
   function handleRemoveWatchFolder(path: string) {
-    const next = downloadWatchFolders.filter((f) => f !== path);
-    setDownloadWatchFolders(next);
+    const next = watchFolders.filter((f) => f !== path);
+    setWatchFolders(next);
     removeWatchFolder(path);
   }
 
@@ -125,7 +115,7 @@ export default function SettingsPage() {
 
         <div className='grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5'>
           {SCHEMES.map((scheme) => {
-            const active = colorScheme === scheme.id;
+            const active = prefs.colorScheme === scheme.id;
             return (
               <button
                 key={scheme.id}
@@ -161,10 +151,10 @@ export default function SettingsPage() {
           <h2 className='font-wow-heading text-wow-gold mb-1 text-lg tracking-wider'>Heading Font</h2>
           <p className='text-wow-text-dim mb-4 text-sm'>Choose the font for titles and headings.</p>
 
-          <Select value={headingFont} onValueChange={(v) => handleFontChange(v as HeadingFont)}>
+          <Select value={prefs.headingFont} onValueChange={(v) => handleFontChange(v as HeadingFont)}>
             <SelectTrigger className='w-64'>
               <SelectValue>
-                <span style={{ fontFamily: `'${headingFont}', serif` }}>{HEADING_FONTS[headingFont]}</span>
+                <span style={{ fontFamily: `'${prefs.headingFont}', serif` }}>{HEADING_FONTS[prefs.headingFont]}</span>
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -186,20 +176,20 @@ export default function SettingsPage() {
           automatically. This supports addon authors through CurseForge's ad impressions and download tracking.
         </p>
         <label className='flex cursor-pointer items-center gap-3'>
-          <Switch checked={supportDevs} onCheckedChange={handleSupportDevsToggle} />
-          <span className={`font-wow-heading text-sm tracking-wider ${supportDevs ? 'text-wow-gold' : 'text-wow-text-dim'}`}>
-            {supportDevs ? 'Supporting developers' : 'Not supporting developers'}
+          <Switch checked={prefs.supportDevs} onCheckedChange={handleSupportDevsToggle} />
+          <span className={`font-wow-heading text-sm tracking-wider ${prefs.supportDevs ? 'text-wow-gold' : 'text-wow-text-dim'}`}>
+            {prefs.supportDevs ? 'Supporting developers' : 'Not supporting developers'}
           </span>
         </label>
 
-        {supportDevs && (
+        {prefs.supportDevs && (
           <>
             <div className='mt-4'>
               <p className='text-wow-text-dim mb-2 text-xs'>Watched download folders:</p>
               <div className='max-h-40 space-y-1 overflow-y-auto'>
-                {downloadWatchFolders.length === 0 ?
+                {watchFolders.length === 0 ?
                   <p className='text-wow-text-muted text-xs italic'>No folders added yet. Add one or more below.</p>
-                : downloadWatchFolders.map((f) => (
+                : watchFolders.map((f) => (
                     <div
                       key={f}
                       className='bg-wow-bg border-wow-border-light flex items-center justify-between rounded-sm border px-2 py-1.5'
@@ -229,11 +219,11 @@ export default function SettingsPage() {
             </div>
 
             <label className='mt-4 flex cursor-pointer items-center gap-3'>
-              <Switch checked={deleteZipAfterInstall} onCheckedChange={handleDeleteZipToggle} />
+              <Switch checked={prefs.deleteZipAfterInstall} onCheckedChange={handleDeleteZipToggle} />
               <span
-                className={`font-wow-heading text-sm tracking-wider ${deleteZipAfterInstall ? 'text-wow-gold' : 'text-wow-text-dim'}`}
+                className={`font-wow-heading text-sm tracking-wider ${prefs.deleteZipAfterInstall ? 'text-wow-gold' : 'text-wow-text-dim'}`}
               >
-                {deleteZipAfterInstall ? 'Deleting ZIP after install' : 'Keeping ZIP after install'}
+                {prefs.deleteZipAfterInstall ? 'Deleting ZIP after install' : 'Keeping ZIP after install'}
               </span>
             </label>
           </>
@@ -249,9 +239,9 @@ export default function SettingsPage() {
           instead of the official CurseForge client.
         </p>
         <label className='flex cursor-pointer items-center gap-3'>
-          <Switch checked={deepLink} onCheckedChange={handleDeepLinkToggle} />
-          <span className={`font-wow-heading text-sm tracking-wider ${deepLink ? 'text-wow-gold' : 'text-wow-text-dim'}`}>
-            {deepLink ? 'Handling CurseForge install links' : 'Not handling CurseForge install links'}
+          <Switch checked={prefs.deepLink} onCheckedChange={handleDeepLinkToggle} />
+          <span className={`font-wow-heading text-sm tracking-wider ${prefs.deepLink ? 'text-wow-gold' : 'text-wow-text-dim'}`}>
+            {prefs.deepLink ? 'Handling CurseForge install links' : 'Not handling CurseForge install links'}
           </span>
         </label>
 

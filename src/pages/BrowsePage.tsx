@@ -94,7 +94,6 @@ export default function BrowsePage() {
 
   function handleVersionChange(versions: string[]) {
     updateParams({ versions, page: 0 });
-    savePrefs({ versions });
   }
 
   function handleSortChange(option: SortOption) {
@@ -120,7 +119,6 @@ export default function BrowsePage() {
 
   function handleClearAll() {
     clearAll();
-    savePrefs({ versions: [] });
   }
 
   const totalPages = pagination ? Math.ceil(pagination.totalCount / effectivePageSize) : 0;
