@@ -1,3 +1,9 @@
+## [0.3.25] - 2026-05-27
+
+### Changed
+
+- add route-level code splitting with lazy imports
+
 ## [0.3.24] - 2026-05-27
 
 ### Fixed
