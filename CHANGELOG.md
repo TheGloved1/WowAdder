@@ -1,3 +1,13 @@
+## [0.3.24] - 2026-05-27
+
+### Fixed
+
+- **filters**: deselect categories without auto-excluding on toggle
+
+### Other
+
+- bump Cargo.lock version to 0.3.24
+
 ## [0.3.23] - 2026-05-27
 
 ### Added
