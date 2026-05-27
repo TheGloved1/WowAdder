@@ -165,7 +165,7 @@ async function undoRelease() {
   console.log(`${BLUE}Available undo logs:${NC}`);
   logs.forEach((log, i) => console.log(`  ${i + 1}. v${log.version}`));
 
-  const choice = await ask(`\nSelect version to undo (1-${logs.length}) [1]: `) || '1';
+  const choice = (await ask(`\nSelect version to undo (1-${logs.length}) [1]: `)) || '1';
   const idx = Math.max(0, Math.min(logs.length - 1, parseInt(choice, 10) - 1)) || 0;
   const selected = logs[idx];
 
@@ -177,13 +177,19 @@ async function undoRelease() {
   console.log(`  files  : ${Object.keys(log.files).join(', ')}`);
 
   const proceed = await ask(`\nProceed? This will hard-reset and force-push. (y/N) `);
-  if (proceed.toLowerCase() !== 'y') { console.log('Aborted.'); process.exit(0); }
+  if (proceed.toLowerCase() !== 'y') {
+    console.log('Aborted.');
+    process.exit(0);
+  }
 
   // Verify we're on the right branch
   const branch = execSync('git branch --show-current', { encoding: 'utf-8' }).trim();
   if (branch !== log.branch) {
     const sw = await ask(`  Not on '${log.branch}' (on '${branch}'). Switch? (y/N) `);
-    if (sw.toLowerCase() !== 'y') { console.log('Aborted.'); process.exit(0); }
+    if (sw.toLowerCase() !== 'y') {
+      console.log('Aborted.');
+      process.exit(0);
+    }
     execSync(`git checkout ${log.branch}`, { encoding: 'utf-8' });
   }
 
@@ -365,7 +371,7 @@ Examples:
   ok('package.json');
   try {
     execSync('bun run sync-version', { stdio: 'inherit' });
-    ok('Synced version to Cargo.toml and tauri.conf.json');
+    ok('Synced version to Cargo.toml, Cargo.lock, and tauri.conf.json');
   } catch (error) {
     fail('Failed to sync version: ' + error);
   }
@@ -381,24 +387,24 @@ Examples:
     const { changelogEntry, releaseEntry } = generateChangelog(next);
 
     // Insert into CHANGELOG.md
-    const changelogPath = "CHANGELOG.md";
+    const changelogPath = 'CHANGELOG.md';
     if (existsSync(changelogPath)) {
-      const changelog = readFileSync(changelogPath, "utf-8");
-      if (changelog.startsWith("## [")) {
-        writeFileSync(changelogPath, changelogEntry + "\n\n" + changelog);
+      const changelog = readFileSync(changelogPath, 'utf-8');
+      if (changelog.startsWith('## [')) {
+        writeFileSync(changelogPath, changelogEntry + '\n\n' + changelog);
       } else {
-        const marker = "\n## [";
+        const marker = '\n## [';
         const idx = changelog.indexOf(marker);
         if (idx !== -1) {
           const before = changelog.slice(0, idx);
           const after = changelog.slice(idx);
-          writeFileSync(changelogPath, before + "\n\n" + changelogEntry + "\n" + after);
+          writeFileSync(changelogPath, before + '\n\n' + changelogEntry + '\n' + after);
         } else {
-          writeFileSync(changelogPath, changelog.trimEnd() + "\n\n" + changelogEntry + "\n");
+          writeFileSync(changelogPath, changelog.trimEnd() + '\n\n' + changelogEntry + '\n');
         }
       }
     } else {
-      writeFileSync(changelogPath, changelogEntry + "\n");
+      writeFileSync(changelogPath, changelogEntry + '\n');
     }
     ok('CHANGELOG.md');
 
