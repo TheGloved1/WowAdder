@@ -49,5 +49,15 @@ export default defineConfig(({ mode }) => {
         ignored: ["**/src-tauri/**"],
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            router: ['react-router-dom'],
+            query: ['@tanstack/react-query'],
+          },
+        },
+      },
+    },
   };
 });
