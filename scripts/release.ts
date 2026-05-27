@@ -82,8 +82,8 @@ function resolveNextVersion(current: string, bump: string, betaModifier: boolean
     case 'minor':
       return betaModifier ? `${parsed.major}.${parsed.minor + 1}.0-beta.1` : `${parsed.major}.${parsed.minor + 1}.0`;
     case 'patch':
-      return betaModifier
-        ? `${parsed.major}.${parsed.minor}.${parsed.patch + 1}-beta.1`
+      return betaModifier ?
+          `${parsed.major}.${parsed.minor}.${parsed.patch + 1}-beta.1`
         : `${parsed.major}.${parsed.minor}.${parsed.patch + 1}`;
     case 'beta':
       if (parsed.prerelease === null)
@@ -98,17 +98,11 @@ function resolveNextVersion(current: string, bump: string, betaModifier: boolean
 // Changelog generation
 // ---------------------------------------------------------------------------
 
-function generateChangelog(
-  next: string,
-  baseTag?: string,
-): { changelogEntry: string; releaseEntry: string } {
+function generateChangelog(next: string, baseTag?: string): { changelogEntry: string; releaseEntry: string } {
   let rangeStart = baseTag;
   if (rangeStart === undefined) {
     try {
-      rangeStart =
-        execSync('git tag --list "v*" --sort=-creatordate', { encoding: 'utf-8' })
-          .trim()
-          .split('\n')[0] ?? '';
+      rangeStart = execSync('git tag --list "v*" --sort=-creatordate', { encoding: 'utf-8' }).trim().split('\n')[0] ?? '';
     } catch {
       rangeStart = '';
     }
@@ -304,9 +298,9 @@ function showUsage() {
 Usage: ./scripts/release.ts [<bump> [beta]] [flags]
 
 Bump commands:
-  major              Bump major version
-  minor              Bump minor version
-  patch              Bump patch version
+  major [beta]       Bump major version. (e.g. 0.3.25 -> 1.0.0 or 1.0.0-beta.1)
+  minor [beta]       Bump minor version. (e.g. 0.3.25 -> 0.4.0 or 0.4.0-beta.1)
+  patch [beta]       Bump patch version. (e.g. 0.3.25 -> 0.3.26 or 0.3.26-beta.1)  
   beta               Increment beta number (must already be beta)
   x.y.z              Explicit version
   x.y.z-beta.N       Explicit beta version
@@ -533,11 +527,7 @@ async function main() {
 
     const looksGood = await ask('Does the changelog look good? (Y/n) ');
     if (checkYesOrNo(looksGood)) {
-      const fileList = [
-        'package.json',
-        ...(isBetaRelease ? [] : ['CHANGELOG.md']),
-        `changelogs/v${next}.md`,
-      ];
+      const fileList = ['package.json', ...(isBetaRelease ? [] : ['CHANGELOG.md']), `changelogs/v${next}.md`];
       console.log(`
 Edit files manually, then run:
   git add ${fileList.join(' ')}
