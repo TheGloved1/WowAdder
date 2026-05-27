@@ -1,5 +1,6 @@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
+import { ChevronDown } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { CategoryTreeNode } from '../services/curseforge';
 import { categoryChildren, getParentCategoryIds } from '../services/curseforge';
@@ -238,7 +239,17 @@ export default function FiltersSidebar({
 
         <Collapsible open={categorySectionOpen} onOpenChange={setCategorySectionOpen}>
           <CollapsibleTrigger className='px-4 py-2'>
-            <span>Categories</span>
+            <span className='flex items-center gap-1.5'>
+              Categories
+              {(selectedCategoryIds.length + excludedCategoryIds.length) > 0 && (
+                <span className='bg-wow-border-gold/20 text-wow-gold inline-flex size-4 items-center justify-center rounded-full text-[10px]'>
+                  {selectedCategoryIds.length + excludedCategoryIds.length}
+                </span>
+              )}
+            </span>
+            <span className='text-wow-text-muted text-[10px]'>
+              <ChevronDown className={`size-3 transition-transform duration-200 ${categorySectionOpen ? 'rotate-180' : ''}`} />
+            </span>
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className='border-wow-border-light space-y-0 border-t px-3 py-2'>
@@ -261,7 +272,17 @@ export default function FiltersSidebar({
 
         <Collapsible open={versionSectionOpen} onOpenChange={setVersionSectionOpen}>
           <CollapsibleTrigger className='px-4 py-2'>
-            <span>Game Version</span>
+            <span className='flex items-center gap-1.5'>
+              Game Version
+              {selectedVersions.length > 0 && (
+                <span className='bg-wow-border-gold/20 text-wow-gold inline-flex size-4 items-center justify-center rounded-full text-[10px]'>
+                  {selectedVersions.length}
+                </span>
+              )}
+            </span>
+            <span className='text-wow-text-muted text-[10px]'>
+              <ChevronDown className={`size-3 transition-transform duration-200 ${versionSectionOpen ? 'rotate-180' : ''}`} />
+            </span>
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className='border-wow-border-light border-t px-3 py-2'>
