@@ -7,10 +7,10 @@ import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import changelogRaw from '../../CHANGELOG.md?raw';
 import { version } from '../../package.json';
+import { usePreferences } from '../hooks/usePreferences';
 import { addWatchFolder, getDefaultDownloadsFolder, removeWatchFolder } from '../services/addonManager';
 import type { ColorScheme, HeadingFont } from '../services/preferences';
 import { HEADING_FONTS } from '../services/preferences';
-import { usePreferences } from '../hooks/usePreferences';
 
 interface SchemeOption {
   id: ColorScheme;
@@ -177,7 +177,9 @@ export default function SettingsPage() {
         </p>
         <label className='flex cursor-pointer items-center gap-3'>
           <Switch checked={prefs.supportDevs} onCheckedChange={handleSupportDevsToggle} />
-          <span className={`font-wow-heading text-sm tracking-wider ${prefs.supportDevs ? 'text-wow-gold' : 'text-wow-text-dim'}`}>
+          <span
+            className={`font-wow-heading text-sm tracking-wider ${prefs.supportDevs ? 'text-wow-gold' : 'text-wow-text-dim'}`}
+          >
             {prefs.supportDevs ? 'Supporting developers' : 'Not supporting developers'}
           </span>
         </label>
@@ -240,7 +242,9 @@ export default function SettingsPage() {
         </p>
         <label className='flex cursor-pointer items-center gap-3'>
           <Switch checked={prefs.deepLink} onCheckedChange={handleDeepLinkToggle} />
-          <span className={`font-wow-heading text-sm tracking-wider ${prefs.deepLink ? 'text-wow-gold' : 'text-wow-text-dim'}`}>
+          <span
+            className={`font-wow-heading text-sm tracking-wider ${prefs.deepLink ? 'text-wow-gold' : 'text-wow-text-dim'}`}
+          >
             {prefs.deepLink ? 'Handling CurseForge install links' : 'Not handling CurseForge install links'}
           </span>
         </label>
