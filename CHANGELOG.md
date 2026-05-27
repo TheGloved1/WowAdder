@@ -1,3 +1,9 @@
+## [0.3.30] - 2026-05-27
+
+### Added
+
+- **search**: debounce input, persist query across sessions, add clear button
+
 ## [0.3.29] - 2026-05-27
 
 ### Fixed
