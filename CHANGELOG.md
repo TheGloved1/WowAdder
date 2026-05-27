@@ -1,3 +1,13 @@
+## [0.3.21] - 2026-05-27
+
+### Changed
+
+- **preferences**: replace imperative loadPrefs/savePrefs with reactive usePreferences hook
+
+### Other
+
+- **deps**: update Cargo.lock
+
 ## [0.3.20] - 2026-05-26
 
 ### Added
