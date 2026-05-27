@@ -1,3 +1,9 @@
+## [0.3.29] - 2026-05-27
+
+### Fixed
+
+- **updater**: separate dialog visibility from update lifecycle state
+
 ## [0.3.28] - 2026-05-27
 
 ### Changed
