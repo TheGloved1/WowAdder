@@ -107,7 +107,6 @@ export default function FiltersSidebar({
     } else if (isSelected) {
       for (const cid of family) {
         selected.delete(cid);
-        excluded.add(cid);
       }
     } else {
       for (const cid of family) {
@@ -241,14 +240,16 @@ export default function FiltersSidebar({
           <CollapsibleTrigger className='px-4 py-2'>
             <span className='flex items-center gap-1.5'>
               Categories
-              {(selectedCategoryIds.length + excludedCategoryIds.length) > 0 && (
+              {selectedCategoryIds.length + excludedCategoryIds.length > 0 && (
                 <span className='bg-wow-border-gold/20 text-wow-gold inline-flex size-4 items-center justify-center rounded-full text-[10px]'>
                   {selectedCategoryIds.length + excludedCategoryIds.length}
                 </span>
               )}
             </span>
             <span className='text-wow-text-muted text-[10px]'>
-              <ChevronDown className={`size-3 transition-transform duration-200 ${categorySectionOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown
+                className={`size-3 transition-transform duration-200 ${categorySectionOpen ? 'rotate-180' : ''}`}
+              />
             </span>
           </CollapsibleTrigger>
           <CollapsibleContent>
@@ -281,7 +282,9 @@ export default function FiltersSidebar({
               )}
             </span>
             <span className='text-wow-text-muted text-[10px]'>
-              <ChevronDown className={`size-3 transition-transform duration-200 ${versionSectionOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown
+                className={`size-3 transition-transform duration-200 ${versionSectionOpen ? 'rotate-180' : ''}`}
+              />
             </span>
           </CollapsibleTrigger>
           <CollapsibleContent>
