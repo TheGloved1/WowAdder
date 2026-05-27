@@ -552,7 +552,7 @@ Edit files manually, then run:
   ];
   execSync(`git add ${filesToAdd.join(' ')}`, { encoding: 'utf-8' });
   execSync(`git commit -m "chore: release v${next}"`, { encoding: 'utf-8' });
-  ok('Committed');
+  ok(`Committed release v${next}`);
 
   step('Saving undo log');
   const commitHash = execSync('git rev-parse HEAD', { encoding: 'utf-8' }).trim();

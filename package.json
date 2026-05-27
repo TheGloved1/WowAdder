@@ -11,6 +11,7 @@
     "build:msi": "tauri build",
     "sync-version": "bun run scripts/sync-version.js",
     "release": "bun scripts/release.ts",
+    "push-tags": "git push --tags",
     "release:no-changelog": "bun scripts/release.ts --no-changelog",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\""
   },
