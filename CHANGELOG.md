@@ -1,3 +1,9 @@
+## [26.5.61] - 2026-05-28
+
+### Other
+
+- **release**: Update patch version to match amount of releases
+
 ## [26.5.0] - 2026-05-28
 
 ### Added
