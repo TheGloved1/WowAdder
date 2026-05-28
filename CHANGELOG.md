@@ -1,3 +1,19 @@
+## [26.5.0] - 2026-05-28
+
+### Added
+
+- **scripts**: migrate from semver to calver versioning
+- **scripts**: complete calver migration and overhaul release tooling
+
+### Fixed
+
+- **scripts/release**: allow single-digit months in version parsing
+- **scripts**: add date to changelog entry and simplify release entry format
+
+### Changed
+
+- **scripts**: improve release preview output format
+
 ## [0.3.31] - 2026-05-28
 
 ### Added
