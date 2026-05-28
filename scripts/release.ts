@@ -41,7 +41,7 @@ interface VersionParsed {
 }
 
 function tryParseVersion(v: string): VersionParsed | null {
-  const match = v.match(/^(\d{2})\.(\d{2})\.(\d+)(?:-(.+?)\.(\d+))?$/);
+  const match = v.match(/^(\d{2})\.(\d{1,2})\.(\d+)(?:-(.+?)\.(\d+))?$/);
   if (!match) return null;
   return {
     year: parseInt(match[1], 10),
@@ -85,7 +85,7 @@ function resolveNextVersion(current: string, bump: string, betaModifier: boolean
   const yy = now.getFullYear() % 100;
   const mm = now.getMonth() + 1;
   const yStr = String(yy).padStart(2, '0');
-  const mStr = String(mm).padStart(2, '0');
+  const mStr = String(mm);
 
   switch (bump) {
     case 'patch':
@@ -95,7 +95,7 @@ function resolveNextVersion(current: string, bump: string, betaModifier: boolean
       return betaModifier ? `${yStr}.${mStr}.0-beta.1` : `${yStr}.${mStr}.0`;
     case 'beta':
       if (parsed.prerelease === null) fail('Not a beta version. Use "patch beta" to start a beta series.');
-      return `${String(parsed.year).padStart(2, '0')}.${String(parsed.month).padStart(2, '0')}.${parsed.patch}-beta.${parsed.prereleaseNum + 1}`;
+      return `${String(parsed.year).padStart(2, '0')}.${parsed.month}.${parsed.patch}-beta.${parsed.prereleaseNum + 1}`;
     default:
       return bump;
   }
@@ -389,10 +389,10 @@ async function main() {
   let next: string;
   if (bump === '') {
     if (parsed.prerelease === null) fail('Already a stable release. Use "patch" to bump, or specify an explicit version.');
-    next = `${String(parsed.year).padStart(2, '0')}.${String(parsed.month).padStart(2, '0')}.${parsed.patch}`;
+    next = `${String(parsed.year).padStart(2, '0')}.${parsed.month}.${parsed.patch}`;
   } else if (['patch', 'beta'].includes(bump)) {
     next = resolveNextVersion(current, bump, betaModifier);
-  } else if (/^\d{2}\.\d{2}\.\d+(-beta\.\d+)?$/.test(bump)) {
+  } else if (/^\d{2}\.\d{1,2}\.\d+(-beta\.\d+)?$/.test(bump)) {
     if (betaModifier) fail('Cannot combine "beta" modifier with an explicit version. Specify the full version instead.');
     next = bump;
   } else {
