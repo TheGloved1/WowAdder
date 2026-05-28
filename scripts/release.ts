@@ -157,8 +157,9 @@ function generateChangelog(next: string, baseTag?: string): { changelogEntry: st
   if (other.length) body += '\n\n### Other\n\n' + other.map((e) => `- ${e}`).join('\n');
   if (!body) body = '\n\nMaintenance release.';
 
-  const changelogEntry = `## [${next}]${body}`;
-  const releaseEntry = `## v${next}${body}`;
+  const today = new Date().toISOString().slice(0, 10);
+  const changelogEntry = `## [${next}] - ${today}${body}`;
+  const releaseEntry = body.trimStart();
 
   return { changelogEntry, releaseEntry };
 }
