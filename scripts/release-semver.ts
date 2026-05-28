@@ -33,19 +33,19 @@ function fail(msg: string): never {
 // ---------------------------------------------------------------------------
 
 interface VersionParsed {
-  year: number;
-  month: number;
+  major: number;
+  minor: number;
   patch: number;
   prerelease: string | null;
   prereleaseNum: number;
 }
 
 function parseVersion(v: string): VersionParsed {
-  const match = v.match(/^(\d{2})\.(\d{2})\.(\d+)(?:-(.+?)\.(\d+))?$/);
+  const match = v.match(/^(\d+)\.(\d+)\.(\d+)(?:-(.+?)\.(\d+))?$/);
   if (!match) fail(`Invalid version: "${v}"`);
   return {
-    year: parseInt(match[1], 10),
-    month: parseInt(match[2], 10),
+    major: parseInt(match[1], 10),
+    minor: parseInt(match[2], 10),
     patch: parseInt(match[3], 10),
     prerelease: match[4] ?? null,
     prereleaseNum: match[5] ? parseInt(match[5], 10) : 0,
@@ -75,21 +75,20 @@ function getLastNonBetaTag(): string {
 
 function resolveNextVersion(current: string, bump: string, betaModifier: boolean): string {
   const parsed = parseVersion(current);
-  const now = new Date();
-  const yy = now.getFullYear() % 100;
-  const mm = now.getMonth() + 1;
-  const yStr = String(yy).padStart(2, '0');
-  const mStr = String(mm).padStart(2, '0');
 
   switch (bump) {
+    case 'major':
+      return betaModifier ? `${parsed.major + 1}.0.0-beta.1` : `${parsed.major + 1}.0.0`;
+    case 'minor':
+      return betaModifier ? `${parsed.major}.${parsed.minor + 1}.0-beta.1` : `${parsed.major}.${parsed.minor + 1}.0`;
     case 'patch':
-      if (parsed.year === yy && parsed.month === mm) {
-        return betaModifier ? `${yStr}.${mStr}.${parsed.patch + 1}-beta.1` : `${yStr}.${mStr}.${parsed.patch + 1}`;
-      }
-      return betaModifier ? `${yStr}.${mStr}.0-beta.1` : `${yStr}.${mStr}.0`;
+      return betaModifier ?
+          `${parsed.major}.${parsed.minor}.${parsed.patch + 1}-beta.1`
+        : `${parsed.major}.${parsed.minor}.${parsed.patch + 1}`;
     case 'beta':
-      if (parsed.prerelease === null) fail('Not a beta version. Use "patch beta" to start a beta series.');
-      return `${String(parsed.year).padStart(2, '0')}.${String(parsed.month).padStart(2, '0')}.${parsed.patch}-beta.${parsed.prereleaseNum + 1}`;
+      if (parsed.prerelease === null)
+        fail('Not a beta version. Use "patch beta", "minor beta", or "major beta" to start a beta series.');
+      return `${parsed.major}.${parsed.minor}.${parsed.patch}-beta.${parsed.prereleaseNum + 1}`;
     default:
       return bump;
   }
@@ -110,6 +109,7 @@ function generateChangelog(next: string, baseTag?: string): { changelogEntry: st
   }
 
   const range = rangeStart ? `${rangeStart}..HEAD` : 'HEAD';
+  const today = new Date().toISOString().slice(0, 10);
 
   const log = execSync(`git log ${range} --pretty=format:"%s" --reverse`, { encoding: 'utf-8' });
   const lines = log.split('\n').filter(Boolean);
@@ -151,8 +151,8 @@ function generateChangelog(next: string, baseTag?: string): { changelogEntry: st
   if (other.length) body += '\n\n### Other\n\n' + other.map((e) => `- ${e}`).join('\n');
   if (!body) body = '\n\nMaintenance release.';
 
-  const changelogEntry = `## [${next}]${body}`;
-  const releaseEntry = `## v${next}${body}`;
+  const changelogEntry = `## [${next}] - ${today}${body}`;
+  const releaseEntry = `## ${today}${body}`;
 
   return { changelogEntry, releaseEntry };
 }
@@ -194,7 +194,7 @@ function listUndoLogs(): { version: string; path: string }[] {
     .sort((a: { version: string }, b: { version: string }) => {
       const pa = parseVersion(a.version);
       const pb = parseVersion(b.version);
-      const base = pb.year - pa.year || pb.month - pa.month || pb.patch - pa.patch;
+      const base = pb.major - pa.major || pb.minor - pa.minor || pb.patch - pa.patch;
       if (base !== 0) return base;
       if (pa.prerelease && !pb.prerelease) return 1;
       if (!pa.prerelease && pb.prerelease) return -1;
@@ -298,12 +298,14 @@ function showUsage() {
 Usage: ./scripts/release.ts [<bump> [beta]] [flags]
 
 Bump commands:
-  patch [beta]       Bump patch version. (e.g. 25.05.3 -> 25.05.4 or 25.05.4-beta.1)
+  major [beta]       Bump major version. (e.g. 0.3.25 -> 1.0.0 or 1.0.0-beta.1)
+  minor [beta]       Bump minor version. (e.g. 0.3.25 -> 0.4.0 or 0.4.0-beta.1)
+  patch [beta]       Bump patch version. (e.g. 0.3.25 -> 0.3.26 or 0.3.26-beta.1)  
   beta               Increment beta number (must already be beta)
-  YY.MM.PATCH        Explicit version
-  YY.MM.PATCH-beta.N Explicit beta version
+  x.y.z              Explicit version
+  x.y.z-beta.N       Explicit beta version
 
-  Append "beta" to start a beta:  patch beta
+  Append "beta" to start a beta:  patch beta, minor beta, major beta
   No arguments on a beta version strips it to stable.
 
 Flags:
@@ -314,14 +316,15 @@ Flags:
 
 Changelog preview:
   changelog                      Preview changelog for current version
-  changelog patch                Preview changelog for next patch
+  changelog patch beta           Preview changelog for next version
 
 Examples:
-  ./scripts/release.ts patch              # 25.05.3 -> 25.05.4
-  ./scripts/release.ts patch beta         # 25.05.3 -> 25.05.4-beta.1
-  ./scripts/release.ts beta               # 25.05.4-beta.1 -> 25.05.4-beta.2
-  ./scripts/release.ts                    # 25.05.4-beta.2 -> 25.05.4 (stable)
-  ./scripts/release.ts 25.05.4            # exact version
+  ./scripts/release.ts patch              # 0.3.25 -> 0.3.26
+  ./scripts/release.ts patch beta         # 0.3.25 -> 0.3.26-beta.1
+  ./scripts/release.ts beta               # 0.3.26-beta.1 -> 0.3.26-beta.2
+  ./scripts/release.ts                    # 0.3.26-beta.2 -> 0.3.26 (stable)
+  ./scripts/release.ts minor              # 0.3.25 -> 0.4.0
+  ./scripts/release.ts 0.4.0              # exact version
   ./scripts/release.ts changelog patch    # preview changelog for next patch
   ./scripts/release.ts --undo             # revert the most recent release
   ./scripts/release.ts patch --no-push    # bump locally without pushing
@@ -389,11 +392,12 @@ async function main() {
   // Resolve next version
   let next: string;
   if (bump === '') {
-    if (parsed.prerelease === null) fail('Already a stable release. Use "patch" to bump, or specify an explicit version.');
-    next = `${String(parsed.year).padStart(2, '0')}.${String(parsed.month).padStart(2, '0')}.${parsed.patch}`;
-  } else if (['patch', 'beta'].includes(bump)) {
+    if (parsed.prerelease === null)
+      fail('Already a stable release. Use major/minor/patch to bump, or specify an explicit version.');
+    next = `${parsed.major}.${parsed.minor}.${parsed.patch}`;
+  } else if (['major', 'minor', 'patch', 'beta'].includes(bump)) {
     next = resolveNextVersion(current, bump, betaModifier);
-  } else if (/^\d{2}\.\d{2}\.\d+(-beta\.\d+)?$/.test(bump)) {
+  } else if (/^\d+\.\d+\.\d+(-beta\.\d+)?$/.test(bump)) {
     if (betaModifier) fail('Cannot combine "beta" modifier with an explicit version. Specify the full version instead.');
     next = bump;
   } else {
