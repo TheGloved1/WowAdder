@@ -1,3 +1,18 @@
+## [0.3.31] - 2026-05-28
+
+### Added
+
+- **agents**: add shadcn skill for component management
+- **addon**: add version filter toggle and use shared Pagination
+
+### Changed
+
+- **browse**: store state in preferences instead of URL params
+
+### Other
+
+- **package.json**: specify bun as package manager
+
 ## [0.3.30] - 2026-05-27
 
 ### Added
