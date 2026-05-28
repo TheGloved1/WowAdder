@@ -1,8 +1,10 @@
+import Pagination from '@/components/Pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { WoWSeparator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { open } from '@tauri-apps/plugin-dialog';
@@ -58,6 +60,7 @@ export default function AddonDetails() {
   const [installProgress, setInstallProgress] = useState(0);
   const [installError, setInstallError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
+  const [versionFilterEnabled, setVersionFilterEnabled] = useState(true);
 
   // Download dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -79,9 +82,9 @@ export default function AddonDetails() {
   const filesLoading = filteredFilesQuery.isLoading;
 
   const allFilteredFiles = useMemo(() => {
-    if (selectedVersions.length === 0) return rawFiles;
+    if (!versionFilterEnabled || selectedVersions.length === 0) return rawFiles;
     return rawFiles.filter((f: CF2File) => f.gameVersions?.some((v: string) => selectedVersions.includes(v)));
-  }, [rawFiles, selectedVersions]);
+  }, [rawFiles, selectedVersions, versionFilterEnabled]);
 
   const files = allFilteredFiles.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
 
@@ -441,12 +444,26 @@ export default function AddonDetails() {
 
         <div className='mb-4 flex items-center justify-between'>
           <h2 className='font-wow-heading text-wow-gold text-lg tracking-wide'>Files</h2>
-          {pagination && (
-            <p className='text-wow-text-muted text-xs'>
-              {pagination.totalCount.toLocaleString()} files
-              {selectedVersions.length > 0 && ` for ${selectedVersions.length > 1 ? 'selected versions' : 'this version'}`}
-            </p>
-          )}
+          <div className='flex items-center gap-4'>
+            {pagination && (
+              <p className='text-wow-text-muted text-xs'>
+                {pagination.totalCount.toLocaleString()} files
+                {versionFilterEnabled && selectedVersions.length > 0 && ` for selected game versions`}
+              </p>
+            )}
+            {selectedVersions.length > 0 && (
+              <label className='flex cursor-pointer items-center gap-2'>
+                <span className='text-wow-text-dim text-xs'>All versions</span>
+                <Switch
+                  checked={!versionFilterEnabled}
+                  onCheckedChange={(checked: boolean) => {
+                    setVersionFilterEnabled(!checked);
+                    setCurrentPage(0);
+                  }}
+                />
+              </label>
+            )}
+          </div>
         </div>
 
         <div className='space-y-2'>
@@ -522,34 +539,8 @@ export default function AddonDetails() {
         </div>
 
         {totalPages > 1 && (
-          <div className='border-wow-border-light mt-6 flex items-center justify-center gap-1 border-t pt-4'>
-            <button
-              onClick={() => setCurrentPage(currentPage - 1)}
-              disabled={currentPage === 0}
-              className='bg-wow-panel border-wow-border-light hover:border-wow-border-gold text-wow-text-dim hover:text-wow-text rounded-sm border px-2.5 py-1.5 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40'
-            >
-              Prev
-            </button>
-            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => i).map((p) => (
-              <button
-                key={p}
-                onClick={() => setCurrentPage(p)}
-                className={`h-8 w-8 rounded-sm border text-xs transition-colors ${
-                  p === currentPage ?
-                    'bg-wow-gold text-wow-bg border-wow-gold font-wow-heading'
-                  : 'bg-wow-panel text-wow-text-dim border-wow-border-light hover:border-wow-border-gold'
-                }`}
-              >
-                {p + 1}
-              </button>
-            ))}
-            <button
-              onClick={() => setCurrentPage(currentPage + 1)}
-              disabled={currentPage >= totalPages - 1}
-              className='bg-wow-panel border-wow-border-light hover:border-wow-border-gold text-wow-text-dim hover:text-wow-text rounded-sm border px-2.5 py-1.5 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40'
-            >
-              Next
-            </button>
+          <div className='border-wow-border-light mt-6 flex justify-center border-t pt-4'>
+            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
           </div>
         )}
 
