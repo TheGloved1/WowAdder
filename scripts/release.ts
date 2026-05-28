@@ -530,9 +530,10 @@ async function main() {
     ok(`${changelogsDir}/v${next}.md`);
 
     // Preview
-    console.log(`\n${DIM}--- changelog preview ---${NC}`);
+    console.log(`\n${BLUE}=== CHANGELOG.md entry ===${NC}\n`);
     console.log(changelogEntry);
-    console.log(`${DIM}--- end preview ---${NC}\n`);
+    console.log(`\n${BLUE}=== Release body (changelogs/v${next}.md) ===${NC}\n`);
+    console.log(releaseEntry);
 
     if (!dryRun) {
       const looksGood = await ask('Does the changelog look good? (Y/n) ');
