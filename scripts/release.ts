@@ -40,9 +40,9 @@ interface VersionParsed {
   prereleaseNum: number;
 }
 
-function parseVersion(v: string): VersionParsed {
+function tryParseVersion(v: string): VersionParsed | null {
   const match = v.match(/^(\d{2})\.(\d{2})\.(\d+)(?:-(.+?)\.(\d+))?$/);
-  if (!match) fail(`Invalid version: "${v}"`);
+  if (!match) return null;
   return {
     year: parseInt(match[1], 10),
     month: parseInt(match[2], 10),
@@ -50,6 +50,12 @@ function parseVersion(v: string): VersionParsed {
     prerelease: match[4] ?? null,
     prereleaseNum: match[5] ? parseInt(match[5], 10) : 0,
   };
+}
+
+function parseVersion(v: string): VersionParsed {
+  const parsed = tryParseVersion(v);
+  if (!parsed) fail(`Invalid version: "${v}"`);
+  return parsed;
 }
 
 function getLastNonBetaTag(): string {
@@ -192,42 +198,24 @@ function listUndoLogs(): { version: string; path: string }[] {
     .filter((f: string) => f.endsWith('.json'))
     .map((f: string) => ({ version: f.replace(/^v/, '').replace(/\.json$/, ''), path: join(UNDO_DIR, f) }))
     .sort((a: { version: string }, b: { version: string }) => {
-      const pa = parseVersion(a.version);
-      const pb = parseVersion(b.version);
-      const base = pb.year - pa.year || pb.month - pa.month || pb.patch - pa.patch;
-      if (base !== 0) return base;
-      if (pa.prerelease && !pb.prerelease) return 1;
-      if (!pa.prerelease && pb.prerelease) return -1;
-      if (pa.prerelease && pb.prerelease) {
-        if (pa.prerelease !== pb.prerelease) return pa.prerelease.localeCompare(pb.prerelease);
-        return pb.prereleaseNum - pa.prereleaseNum;
+      const pa = tryParseVersion(a.version);
+      const pb = tryParseVersion(b.version);
+      if (pa && pb) {
+        const base = pb.year - pa.year || pb.month - pa.month || pb.patch - pa.patch;
+        if (base !== 0) return base;
+        if (pa.prerelease && !pb.prerelease) return 1;
+        if (!pa.prerelease && pb.prerelease) return -1;
+        if (pa.prerelease && pb.prerelease) {
+          if (pa.prerelease !== pb.prerelease) return pa.prerelease.localeCompare(pb.prerelease);
+          return pb.prereleaseNum - pa.prereleaseNum;
+        }
+        return 0;
       }
-      return 0;
+      return b.version.localeCompare(a.version);
     });
 }
 
-function restoreFiles(log: UndoLog) {
-  const changed: string[] = [];
-  for (const [file, content] of Object.entries(log.files)) {
-    if (content === null) {
-      if (existsSync(file)) {
-        rmSync(file);
-        changed.push(file);
-      }
-    } else {
-      writeFileSync(file, content);
-      changed.push(file);
-    }
-  }
-  for (const file of log.created) {
-    if (existsSync(file)) {
-      rmSync(file);
-    }
-  }
-  return changed;
-}
-
-async function undoRelease() {
+async function undoRelease(dryRun = false) {
   const logs = listUndoLogs();
   if (logs.length === 0) fail('No undo logs found.');
 
@@ -243,9 +231,8 @@ async function undoRelease() {
   console.log(`  commit : ${log.commit.substring(0, 7)}`);
   console.log(`  tag    : ${log.tag}`);
   console.log(`  branch : ${log.branch}`);
-  console.log(`  files  : ${Object.keys(log.files).join(', ')}`);
 
-  const proceed = await ask(`\nProceed? This will hard-reset and force-push. (y/N) `);
+  const proceed = await ask(`\nProceed? This will delete the local/remote tag and the GitHub release. (y/N) `);
   if (proceed.toLowerCase() !== 'y') {
     console.log('Aborted.');
     process.exit(0);
@@ -258,30 +245,34 @@ async function undoRelease() {
       console.log('Aborted.');
       process.exit(0);
     }
-    execSync(`git checkout ${log.branch}`, { encoding: 'utf-8' });
+    if (!dryRun) execSync(`git checkout ${log.branch}`, { encoding: 'utf-8' });
   }
 
-  step('Checking out release commit');
-  execSync(`git checkout ${log.commit}`, { encoding: 'utf-8' });
+  if (dryRun) {
+    console.log(`\n${YELLOW}DRY RUN${NC} — no changes will be made\n`);
+  }
 
-  step('Restoring file snapshots');
-  const changed = restoreFiles(log);
-  changed.forEach((f) => ok(`Restored ${f}`));
+  step('Deleting local tag');
+  if (!dryRun) execSync(`git tag -d "${log.tag}"`, { stdio: 'ignore', encoding: 'utf-8' });
+  ok(`Deleted local tag ${log.tag}`);
 
-  step('Creating revert commit');
-  execSync(`git add ${changed.join(' ')}`, { encoding: 'utf-8' });
-  const changedList = changed.map((f) => `  Revert ${f}`).join('\n');
-  execSync(`git commit -m "revert: undo release v${log.version.to}\n\n${changedList}"`, { encoding: 'utf-8' });
+  step('Deleting remote tag');
+  if (!dryRun) execSync(`git push origin :refs/tags/${log.tag}`, { stdio: 'ignore', encoding: 'utf-8' });
+  ok(`Deleted remote tag ${log.tag}`);
 
-  step(`Deleting tag ${log.tag}`);
-  execSync(`git tag -d "${log.tag}"`, { encoding: 'utf-8' });
+  step('Deleting GitHub release');
+  if (!dryRun) {
+    try {
+      execSync(`gh release delete "v${log.version.to}" --yes`, { stdio: 'ignore', encoding: 'utf-8' });
+    } catch {
+      console.log(`  ${YELLOW}warning${NC} Could not delete GitHub release.`);
+    }
+  }
+  ok('GitHub release deleted');
 
-  step(`Pushing revert to origin/${log.branch}`);
-  execSync(`git push origin ${log.branch}`, { encoding: 'utf-8' });
-  execSync(`git push origin :refs/tags/${log.tag}`, { encoding: 'utf-8' });
-  ok('Pushed');
-
-  rmSync(selected.path);
+  if (!dryRun) {
+    rmSync(selected.path);
+  }
   ok(`Cleaned up ${selected.path}`);
 
   console.log(`\n${GREEN}${'='.repeat(40)}${NC}`);
@@ -310,6 +301,7 @@ Flags:
   --no-changelog     Skip changelog generation
   --no-push          Commit and tag locally, skip git push
   --undo             Revert the most recent release
+  --dry-run          Show what would be done without making changes
   --help, -h, help   Show this help
 
 Changelog preview:
@@ -324,7 +316,10 @@ Examples:
   ./scripts/release.ts 25.05.4            # exact version
   ./scripts/release.ts changelog patch    # preview changelog for next patch
   ./scripts/release.ts --undo             # revert the most recent release
-  ./scripts/release.ts patch --no-push    # bump locally without pushing
+   ./scripts/release.ts patch --no-push    # bump locally without pushing
+   ./scripts/release.ts --dry-run          # dry run the next release
+   ./scripts/release.ts patch --dry-run    # dry run a patch bump
+   ./scripts/release.ts --undo --dry-run   # dry run an undo
 `);
 }
 
@@ -344,15 +339,19 @@ async function main() {
 
   // Undo
   if (args.includes('--undo')) {
-    await undoRelease();
+    const dryRun = args.includes('--dry-run');
+    await undoRelease(dryRun);
     rl.close();
     process.exit(0);
   }
 
+  // Dry run
+  const dryRun = args.includes('--dry-run');
+
   // Extract flags
   const skipChangelog = args.includes('--no-changelog');
   const noPush = args.includes('--no-push');
-  const flags = new Set(['--undo', '--no-changelog', '--no-push', '--help', '-h']);
+  const flags = new Set(['--undo', '--no-changelog', '--no-push', '--dry-run', '--help', '-h']);
   const positional = args.filter((a) => !flags.has(a));
 
   const isChangelogMode = positional[0] === 'changelog';
@@ -400,9 +399,9 @@ async function main() {
     fail(`Invalid version or bump type: "${bump}"`);
   }
 
-  console.log(`${BLUE}Release${NC}`);
-  console.log(`  current : ${DIM}${current}${NC}`);
-  console.log(`  next    : ${GREEN}${next}${NC}\n`);
+  console.log(`  bump type : ${bump === '' ? 'stable (strip beta)' : bump}`);
+  console.log(`  current   : ${DIM}${current}${NC}`);
+  console.log(`  next      : ${GREEN}${next}${NC}\n`);
 
   // Changelog-only mode
   if (isChangelogMode) {
@@ -425,8 +424,10 @@ async function main() {
   // Pre-flight checks
   step('Running pre-flight checks');
 
-  const status = execSync('git status --porcelain', { encoding: 'utf-8' }).trim();
-  if (status) fail('Uncommitted changes detected. Commit or stash them first.');
+  if (!dryRun) {
+    const status = execSync('git status --porcelain', { encoding: 'utf-8' }).trim();
+    if (status) fail('Uncommitted changes detected. Commit or stash them first.');
+  }
   ok('Working tree clean');
 
   const branch = execSync('git branch --show-current', { encoding: 'utf-8' }).trim();
@@ -440,37 +441,45 @@ async function main() {
   }
 
   // Confirm
-  const proceed = await ask(`Proceed with release v${next}? (Y/n) `);
-  if (checkYesOrNo(proceed)) {
-    console.log('Aborted.');
-    process.exit(0);
+  if (!dryRun) {
+    const proceed = await ask(`Proceed with release v${next}? (Y/n) `);
+    if (checkYesOrNo(proceed)) {
+      console.log('Aborted.');
+      process.exit(0);
+    }
+  } else {
+    console.log(`\n${YELLOW}DRY RUN${NC} — no changes will be made\n`);
   }
 
   const isBetaRelease = next.includes('-');
   const isStableFromBeta = parsed.prerelease !== null && !next.includes('-');
 
   // Snapshot files before any changes (for undo log)
-  const snapshotFiles = [
-    'package.json',
-    'src-tauri/Cargo.toml',
-    'src-tauri/Cargo.lock',
-    'src-tauri/tauri.conf.json',
-    ...(skipChangelog || isBetaRelease ? [] : ['CHANGELOG.md']),
-  ];
-  const fileSnapshot = captureFileSnapshot(snapshotFiles);
+  const fileSnapshot =
+    dryRun ?
+      {}
+    : captureFileSnapshot([
+        'package.json',
+        'src-tauri/Cargo.toml',
+        'src-tauri/Cargo.lock',
+        'src-tauri/tauri.conf.json',
+        ...(skipChangelog || isBetaRelease ? [] : ['CHANGELOG.md']),
+      ]);
 
   // Bump versions
   step('Updating version numbers');
 
-  pkg.version = next;
-  writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-  ok('package.json');
-  try {
-    execSync('bun run sync-version', { stdio: 'inherit' });
-    ok('Synced version to Cargo.toml, Cargo.lock, and tauri.conf.json');
-  } catch (error) {
-    fail('Failed to sync version: ' + error);
+  if (!dryRun) {
+    pkg.version = next;
+    writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+    try {
+      execSync('bun run sync-version', { stdio: 'inherit' });
+    } catch (error) {
+      fail('Failed to sync version: ' + error);
+    }
   }
+  ok('package.json');
+  ok('Synced version to Cargo.toml, Cargo.lock, and tauri.conf.json');
 
   // Changelog
   if (skipChangelog) {
@@ -484,7 +493,7 @@ async function main() {
 
     if (isBetaRelease) {
       ok('SKIP — CHANGELOG.md not updated for beta releases');
-    } else {
+    } else if (!dryRun) {
       // Insert into CHANGELOG.md
       const changelogPath = 'CHANGELOG.md';
       if (existsSync(changelogPath)) {
@@ -506,14 +515,18 @@ async function main() {
         writeFileSync(changelogPath, changelogEntry + '\n');
       }
       ok('CHANGELOG.md');
+    } else {
+      ok('CHANGELOG.md');
     }
 
     // Write tag-specific changelog
     const changelogsDir = 'changelogs';
-    if (!existsSync(changelogsDir)) {
-      mkdirSync(changelogsDir, { recursive: true });
+    if (!dryRun) {
+      if (!existsSync(changelogsDir)) {
+        mkdirSync(changelogsDir, { recursive: true });
+      }
+      writeFileSync(`${changelogsDir}/v${next}.md`, releaseEntry);
     }
-    writeFileSync(`${changelogsDir}/v${next}.md`, releaseEntry);
     ok(`${changelogsDir}/v${next}.md`);
 
     // Preview
@@ -521,17 +534,19 @@ async function main() {
     console.log(changelogEntry);
     console.log(`${DIM}--- end preview ---${NC}\n`);
 
-    const looksGood = await ask('Does the changelog look good? (Y/n) ');
-    if (checkYesOrNo(looksGood)) {
-      const fileList = ['package.json', ...(isBetaRelease ? [] : ['CHANGELOG.md']), `changelogs/v${next}.md`];
-      console.log(`
+    if (!dryRun) {
+      const looksGood = await ask('Does the changelog look good? (Y/n) ');
+      if (checkYesOrNo(looksGood)) {
+        const fileList = ['package.json', ...(isBetaRelease ? [] : ['CHANGELOG.md']), `changelogs/v${next}.md`];
+        console.log(`
 Edit files manually, then run:
   git add ${fileList.join(' ')}
   git commit -m "chore: release v${next}"
   git tag -a v${next} -m "Release v${next}"
   ${noPush ? '# (--no-push enabled)' : `git push origin ${branch} --tags`}
 `);
-      process.exit(0);
+        process.exit(0);
+      }
     }
   }
 
@@ -546,26 +561,32 @@ Edit files manually, then run:
     ...(skipChangelog ? [] : [`changelogs/v${next}.md`]),
     ...(skipChangelog || isBetaRelease ? [] : ['CHANGELOG.md']),
   ];
-  execSync(`git add ${filesToAdd.join(' ')}`, { encoding: 'utf-8' });
-  execSync(`git commit -m "chore: release v${next}"`, { encoding: 'utf-8' });
+  if (!dryRun) {
+    execSync(`git add ${filesToAdd.join(' ')}`, { encoding: 'utf-8' });
+    execSync(`git commit -m "chore: release v${next}"`, { encoding: 'utf-8' });
+  }
   ok(`Committed release v${next}`);
 
   step('Saving undo log');
-  const commitHash = execSync('git rev-parse HEAD', { encoding: 'utf-8' }).trim();
-  const createdFiles: string[] = skipChangelog ? [] : [`changelogs/v${next}.md`];
-  saveUndoLog({
-    version: { from: current, to: next },
-    timestamp: new Date().toISOString(),
-    branch,
-    commit: commitHash,
-    tag: `v${next}`,
-    files: fileSnapshot,
-    created: createdFiles,
-  });
+  if (!dryRun) {
+    const commitHash = execSync('git rev-parse HEAD', { encoding: 'utf-8' }).trim();
+    const createdFiles: string[] = skipChangelog ? [] : [`changelogs/v${next}.md`];
+    saveUndoLog({
+      version: { from: current, to: next },
+      timestamp: new Date().toISOString(),
+      branch,
+      commit: commitHash,
+      tag: `v${next}`,
+      files: fileSnapshot,
+      created: createdFiles,
+    });
+  }
   ok(`.release-undo/v${next}.json`);
 
   step(`Creating tag v${next}`);
-  execSync(`git tag -a "v${next}" -m "Release v${next}"`, { encoding: 'utf-8' });
+  if (!dryRun) {
+    execSync(`git tag -a "v${next}" -m "Release v${next}"`, { encoding: 'utf-8' });
+  }
   ok('Tagged');
 
   // Push to remote
@@ -575,18 +596,22 @@ Edit files manually, then run:
     console.log(`  git push origin ${branch} --tags`);
   } else {
     step(`Pushing to origin/${branch}`);
-    execSync(`git push origin ${branch} --tags`, { encoding: 'utf-8' });
+    if (!dryRun) {
+      execSync(`git push origin ${branch} --tags`, { encoding: 'utf-8' });
+    }
     ok('Pushed');
   }
 
   // Done
-  console.log(`\n${GREEN}========================================${NC}`);
-  console.log(`${GREEN}  Released v${next}${NC}`);
-  console.log(`${GREEN}========================================${NC}\n`);
-  console.log('Next step:');
-  console.log('  CI will build and create a GitHub release.\n');
-  console.log(`To undo this release:`);
-  console.log(`  ./scripts/release.ts --undo`);
+  if (!dryRun) {
+    console.log(`\n${GREEN}========================================${NC}`);
+    console.log(`${GREEN}  Released v${next}${NC}`);
+    console.log(`${GREEN}========================================${NC}\n`);
+    console.log('Next step:');
+    console.log('  CI will build and create a GitHub release.\n');
+    console.log('To undo this release:');
+    console.log('  ./scripts/release.ts --undo');
+  }
 }
 
 main()
