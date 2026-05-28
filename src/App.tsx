@@ -27,10 +27,7 @@ function DeepLinkListener() {
       if (!prefs.deepLink) return;
 
       processingRef.current = true;
-      const params = new URLSearchParams();
-      if (fileId) params.set('fileId', fileId);
-      const to = `/addon/${addonId}${params.toString() ? '?' + params.toString() : ''}`;
-      navigate(to);
+      navigate(`/addon/${addonId}`, { state: { autoInstallFileId: fileId ? Number(fileId) : undefined } });
     } catch {}
   }
 

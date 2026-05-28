@@ -107,8 +107,7 @@ export default function Browse() {
   }
 
   function handleAddonClick(id: number) {
-    const versionParam = params.versions.length > 0 ? `?version=${encodeURIComponent(params.versions.join(','))}` : '';
-    navigate(`/addon/${id}${versionParam}`, {
+    navigate(`/addon/${id}`, {
       state: { browseParams: params },
     });
   }

@@ -38,6 +38,8 @@ export type Preferences = {
   deleteZipAfterInstall: boolean;
   deepLink: boolean;
   searchQuery: string;
+  categoryIds: number[];
+  excludedCategoryIds: number[];
 };
 
 export const DEFAULTS: Preferences = {
@@ -51,6 +53,8 @@ export const DEFAULTS: Preferences = {
   deleteZipAfterInstall: true,
   deepLink: false,
   searchQuery: '',
+  categoryIds: [],
+  excludedCategoryIds: [],
 };
 
 export function loadPrefs(): Preferences {

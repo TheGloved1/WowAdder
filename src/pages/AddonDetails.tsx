@@ -7,10 +7,8 @@ import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { open } from '@tauri-apps/plugin-dialog';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import WoWIconFrame from '../components/wow/WoWIcon';
-import type { BrowseParams } from '../hooks/useBrowseParams';
-import { buildBrowseUrl } from '../hooks/useBrowseParams';
 import { useMod, useModDescription, useModFiles } from '../hooks/useCurseforge';
 import {
   addWatchFolder,
@@ -43,19 +41,12 @@ const formatSize = (size: number) => {
 export default function AddonDetails() {
   const { id } = useParams<{ id: string }>();
   const modId = id ? Number(id) : undefined;
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const selectedVersion = searchParams.get('version') || '';
-  const selectedVersions = selectedVersion ? selectedVersion.split(',').filter(Boolean) : [];
-  const autoInstallFileId = Number(searchParams.get('fileId')) || null;
   const location = useLocation();
-  const backParams = location.state?.browseParams as BrowseParams | undefined;
+  const selectedVersions = loadPrefs().versions;
+  const autoInstallFileId = (location.state as { autoInstallFileId?: number })?.autoInstallFileId ?? null;
   const handleBack = () => {
-    if (backParams) {
-      navigate({ pathname: '/', search: buildBrowseUrl(backParams).toString() });
-    } else {
-      navigate(-1);
-    }
+    navigate(-1);
   };
 
   const { data: addon, isLoading: loading, error: addonError } = useMod(modId);

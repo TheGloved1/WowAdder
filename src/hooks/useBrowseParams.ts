@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { csvNumber, csvString, integer, text } from '../lib/url-serializers';
+import { useCallback, useRef } from 'react';
+import type { SortOption } from '../components/SortSelector';
+import { SORT_OPTIONS } from '../components/SortSelector';
 import { usePreferences } from './usePreferences';
 
 export interface BrowseParams {
@@ -25,27 +25,8 @@ const DEFAULTS: BrowseParams = {
   page: 0,
 };
 
-export function buildBrowseUrl(params: BrowseParams): URLSearchParams {
-  const urlSearchParams = new URLSearchParams();
-  const set = (k: string, v: string | null) => {
-    if (v !== null) urlSearchParams.set(k, v);
-  };
-
-  set('q', text.serialize(params.q));
-  set('categoryIds', csvNumber.serialize(params.categoryIds));
-  set('excludedCategoryIds', csvNumber.serialize(params.excludedCategoryIds));
-  set('versions', csvString.serialize(params.versions));
-  if (params.sortField !== DEFAULTS.sortField) set('sortField', String(params.sortField));
-  if (params.sortOrder !== DEFAULTS.sortOrder) set('sortOrder', params.sortOrder);
-  if (params.pageSize !== DEFAULTS.pageSize) set('pageSize', String(params.pageSize));
-  if (params.page > 0) set('page', String(params.page + 1));
-
-  return urlSearchParams;
-}
-
-function parsePage(raw: string | null): number {
-  const n = Number(raw);
-  return isNaN(n) || n < 1 ? 0 : n - 1;
+function findSortOption(field: number, order: string): SortOption {
+  return SORT_OPTIONS.find((o) => o.field === field && o.order === order) ?? SORT_OPTIONS[0];
 }
 
 interface UseBrowseParamsReturn {
@@ -53,62 +34,81 @@ interface UseBrowseParamsReturn {
   setParam: <K extends keyof BrowseParams>(key: K, value: BrowseParams[K]) => void;
   updateParams: (patch: Partial<BrowseParams>) => void;
   clearAll: () => void;
-  buildUrl: () => URLSearchParams;
 }
 
 export function useBrowseParams(): UseBrowseParamsReturn {
-  const [searchParams, setSearchParams] = useSearchParams();
   const { prefs, updatePrefs } = usePreferences();
+  const pageRef = useRef(0);
 
-  const [params, setParams] = useState<BrowseParams>(() => ({
-    q: text.parse(searchParams.get('q')) || prefs.searchQuery || DEFAULTS.q,
-    categoryIds: csvNumber.parse(searchParams.get('categoryIds')),
-    excludedCategoryIds: csvNumber.parse(searchParams.get('excludedCategoryIds')),
-    versions: (() => {
-      const url = csvString.parse(searchParams.get('versions'));
-      return url.length > 0 ? url : (prefs.versions ?? DEFAULTS.versions);
-    })(),
-    sortField: integer.parse(searchParams.get('sortField')) || prefs.sortOption.field || DEFAULTS.sortField,
-    sortOrder: searchParams.get('sortOrder') || prefs.sortOption.order || DEFAULTS.sortOrder,
-    pageSize: integer.parse(searchParams.get('pageSize')) || prefs.pageSize || DEFAULTS.pageSize,
-    page: parsePage(searchParams.get('page')),
-  }));
+  const sortFromPrefs = prefs.sortOption || SORT_OPTIONS[0];
 
-  const isFirstRender = useRef(true);
+  const params: BrowseParams = {
+    q: prefs.searchQuery ?? DEFAULTS.q,
+    categoryIds: prefs.categoryIds ?? DEFAULTS.categoryIds,
+    excludedCategoryIds: prefs.excludedCategoryIds ?? DEFAULTS.excludedCategoryIds,
+    versions: prefs.versions ?? DEFAULTS.versions,
+    sortField: sortFromPrefs.field,
+    sortOrder: sortFromPrefs.order,
+    pageSize: prefs.pageSize ?? DEFAULTS.pageSize,
+    page: pageRef.current,
+  };
 
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-    setSearchParams(buildBrowseUrl(params), { replace: true });
-  }, [params, setSearchParams]);
+  const setParam = useCallback(
+    <K extends keyof BrowseParams>(key: K, value: BrowseParams[K]) => {
+      if (key === 'page') {
+        pageRef.current = value as number;
+        return;
+      }
+      const prefUpdates: Partial<typeof prefs> = {};
+      if (key === 'q') prefUpdates.searchQuery = value as string;
+      if (key === 'categoryIds') prefUpdates.categoryIds = value as number[];
+      if (key === 'excludedCategoryIds') prefUpdates.excludedCategoryIds = value as number[];
+      if (key === 'versions') prefUpdates.versions = value as string[];
+      if (key === 'sortField') {
+        prefUpdates.sortOption = findSortOption(value as number, prefs.sortOption.order);
+      }
+      if (key === 'sortOrder') {
+        prefUpdates.sortOption = findSortOption(prefs.sortOption.field, value as string);
+      }
+      if (key === 'pageSize') prefUpdates.pageSize = value as number;
+      updatePrefs(prefUpdates);
+    },
+    [prefs, updatePrefs],
+  );
 
-  useEffect(() => {
-    if (!searchParams.get('versions') && prefs.versions.length > 0) {
-      setSearchParams(buildBrowseUrl({ ...params, versions: prefs.versions }), { replace: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (isFirstRender.current) return;
-    updatePrefs({ versions: params.versions });
-  }, [params.versions, updatePrefs]);
-
-  const setParam = useCallback(<K extends keyof BrowseParams>(key: K, value: BrowseParams[K]) => {
-    setParams((prev) => ({ ...prev, [key]: value }));
-  }, []);
-
-  const updateParams = useCallback((patch: Partial<BrowseParams>) => {
-    setParams((prev) => ({ ...prev, ...patch }));
-  }, []);
+  const updateParams = useCallback(
+    (patch: Partial<BrowseParams>) => {
+      if ('page' in patch) {
+        pageRef.current = patch.page ?? 0;
+      }
+      const prefUpdates: Partial<typeof prefs> = {};
+      if ('q' in patch) prefUpdates.searchQuery = patch.q;
+      if ('categoryIds' in patch) prefUpdates.categoryIds = patch.categoryIds;
+      if ('excludedCategoryIds' in patch) prefUpdates.excludedCategoryIds = patch.excludedCategoryIds;
+      if ('versions' in patch) prefUpdates.versions = patch.versions;
+      if ('sortField' in patch || 'sortOrder' in patch) {
+        prefUpdates.sortOption = findSortOption(
+          patch.sortField ?? prefs.sortOption.field,
+          patch.sortOrder ?? prefs.sortOption.order,
+        );
+      }
+      if ('pageSize' in patch) prefUpdates.pageSize = patch.pageSize;
+      updatePrefs(prefUpdates);
+    },
+    [prefs, updatePrefs],
+  );
 
   const clearAll = useCallback(() => {
-    setParams(DEFAULTS);
-  }, []);
+    pageRef.current = 0;
+    updatePrefs({
+      searchQuery: '',
+      categoryIds: [],
+      excludedCategoryIds: [],
+      versions: [],
+      sortOption: SORT_OPTIONS[0],
+      pageSize: 20,
+    });
+  }, [updatePrefs]);
 
-  const buildUrl = useCallback(() => buildBrowseUrl(params), [params]);
-
-  return { params, setParam, updateParams, clearAll, buildUrl };
+  return { params, setParam, updateParams, clearAll };
 }
