@@ -1,3 +1,9 @@
+## [26.5.65] - 2026-05-29
+
+### Changed
+
+- **AddonCard**: remove class category badge
+
 ## [26.5.64] - 2026-05-29
 
 ### Added
