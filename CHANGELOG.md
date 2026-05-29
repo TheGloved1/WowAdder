@@ -1,3 +1,9 @@
+## [26.5.63] - 2026-05-29
+
+### Changed
+
+- **ui**: make author names clickable links to CurseForge profiles
+
 ## [26.5.62] - 2026-05-29
 
 ### Changed
