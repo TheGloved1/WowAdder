@@ -1,7 +1,7 @@
 {
   "name": "wowadder",
   "private": true,
-  "version": "26.5.61",
+  "version": "26.5.62",
   "type": "module",
   "packageManager": "bun",
   "scripts": {

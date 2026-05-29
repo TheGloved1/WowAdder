@@ -1,3 +1,14 @@
+## [26.5.62] - 2026-05-29
+
+### Changed
+
+- **tauri**: apply rustfmt formatting and clean up Cargo.toml
+- **ui**: add horizontal margin to AddonGrid containers
+
+### Other
+
+- **tauri**: fix beforeDevCommand, add window centering and updater artifacts
+
 ## [26.5.61] - 2026-05-28
 
 ### Other
