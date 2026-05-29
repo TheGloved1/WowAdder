@@ -48,6 +48,7 @@ export default function AddonDetails() {
   const selectedVersions = loadPrefs().versions;
   const autoInstallFileId = (location.state as { autoInstallFileId?: number })?.autoInstallFileId ?? null;
   const handleBack = () => {
+    console.log('[AddonDetails] handleBack: navigating back with state', location.state);
     navigate(-1);
   };
 

@@ -2,7 +2,7 @@ import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { WoWSeparator } from '@/components/ui/separator';
 import { usePreferences } from '@/hooks/usePreferences';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AddonGrid from '../components/AddonGrid';
 import FiltersSidebar from '../components/FiltersSidebar';
@@ -40,6 +40,46 @@ export default function Browse() {
   useEffect(() => {
     savePrefs({ searchQuery: debouncedSearch });
   }, [debouncedSearch]);
+
+  const restoredRef = useRef(false);
+
+  useLayoutEffect(() => {
+    const intent = sessionStorage.getItem('wowadder_browse_intent');
+    const saved = sessionStorage.getItem('wowadder_browse_state');
+    console.log('[Browse] useLayoutEffect: mounted', {
+      intent,
+      hasSaved: !!saved,
+      restored: restoredRef.current,
+      paramsPage: params.page,
+    });
+    if (intent === 'details' && saved && !restoredRef.current) {
+      restoredRef.current = true;
+      try {
+        const parsed = JSON.parse(saved);
+        const { page, scrollY } = parsed;
+        console.log('[Browse] useLayoutEffect: restoring', { page, scrollY, currentPage: params.page });
+        if (typeof page === 'number' && page !== params.page) {
+          console.log('[Browse] useLayoutEffect: calling updateParams({page:' + page + '})');
+          updateParams({ page });
+        }
+        if (typeof scrollY === 'number') {
+          console.log('[Browse] useLayoutEffect: scheduling scroll to', scrollY);
+          setTimeout(() => {
+            const root = document.getElementById('root');
+            if (root) {
+              console.log('[Browse] setTimeout: scrolling root to', scrollY, 'current:', root.scrollTop);
+              root.scrollTop = scrollY;
+              console.log('[Browse] setTimeout: after scroll, scrollTop:', root.scrollTop);
+            }
+          }, 0);
+        }
+      } catch (e) {
+        console.log('[Browse] useLayoutEffect: parse error', e);
+      }
+    } else {
+      console.log('[Browse] useLayoutEffect: skipping restore', { intent, saved, restored: restoredRef.current });
+    }
+  }, []);
 
   const sortOption: SortOption =
     SORT_OPTIONS.find((o) => o.field === params.sortField && o.order === params.sortOrder) ?? SORT_OPTIONS[0];
@@ -107,6 +147,10 @@ export default function Browse() {
   }
 
   function handleAddonClick(id: number) {
+    const scrollY = document.getElementById('root')?.scrollTop ?? window.scrollY;
+    console.log('[Browse] handleAddonClick: saving state', { scrollY, page: params.page });
+    sessionStorage.setItem('wowadder_browse_state', JSON.stringify({ scrollY, page: params.page }));
+    sessionStorage.setItem('wowadder_browse_intent', 'details');
     navigate(`/addon/${id}`, {
       state: { browseParams: params },
     });
