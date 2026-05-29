@@ -404,18 +404,25 @@ export default function AddonDetails() {
               : null}
             </div>
             <div className='mt-3 flex flex-wrap gap-1.5'>
-              {addon.categories?.map((cat) => (
-                <Badge key={cat.id} variant='info'>
-                  {cat.name}
+              {addon.categories.map((c) => (
+                <Badge key={c.id} variant='info'>
+                  {c.name}
                 </Badge>
               ))}
             </div>
             <div className='text-wow-text-muted mt-2 flex flex-wrap gap-1.5 text-sm'>
               {'By '}
               {addon.authors?.map((author) => (
-                <span key={author.id} className='text-wow-text-muted bg-wow-border content-center rounded-sm px-1.5 text-xs'>
-                  {author.name}
-                </span>
+                <Link
+                  key={author.id}
+                  to={author.url || `https://www.curseforge.com/members/${author.id}`}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                >
+                  <span className='text-wow-text-muted bg-wow-border content-center rounded-sm px-1.5 text-xs'>
+                    {author.name}
+                  </span>
+                </Link>
               ))}
             </div>
           </div>
