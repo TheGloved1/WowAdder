@@ -25,11 +25,6 @@ export default function AddonCard({ addon, onClick }: AddonCardProps) {
   const firstCategory = addon.categories?.[0];
   const extraCategories = Math.max(0, (addon.categories?.length ?? 0) - 1);
 
-  const classNames = [
-    addon.categories?.find((c) => c.isClass)?.name,
-    addon.categories?.find((c) => c.name === 'Healer' || c.name === 'Tank' || c.name === 'Damage Dealer')?.name,
-  ].filter(Boolean);
-
   return (
     <button
       onClick={() => onClick(addon.id)}
@@ -65,7 +60,6 @@ export default function AddonCard({ addon, onClick }: AddonCardProps) {
 
           <div className='mt-1 flex flex-wrap items-center gap-1.5'>
             {installed && <Badge variant='installed'>Installed</Badge>}
-            {classNames.length > 0 && <Badge variant='class'>{classNames[0]}</Badge>}
           </div>
 
           <p className='text-wow-text-dim mt-1.5 line-clamp-2 text-xs leading-relaxed'>{addon.summary}</p>
