@@ -1,3 +1,9 @@
+## [26.5.64] - 2026-05-29
+
+### Added
+
+- **browse**: save and restore scroll position when navigating to addon details
+
 ## [26.5.63] - 2026-05-29
 
 ### Changed
