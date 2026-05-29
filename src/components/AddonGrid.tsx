@@ -33,7 +33,7 @@ export default function AddonGrid({ addons, onAddonClick, loading, error }: Addo
 
   if (loading) {
     return (
-      <div className='grid gap-3'>
+      <div className='mx-3 grid gap-3'>
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className='border-wow-border-light rounded-sm border p-3.5'>
             <div className='flex gap-3.5'>
@@ -72,7 +72,7 @@ export default function AddonGrid({ addons, onAddonClick, loading, error }: Addo
   }
 
   return (
-    <div className='grid gap-3'>
+    <div className='mx-3 grid gap-3'>
       {addons.map((addon) => (
         <AddonCard key={addon.id} addon={addon} onClick={onAddonClick} />
       ))}
