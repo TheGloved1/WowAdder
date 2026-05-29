@@ -4,7 +4,7 @@
   "version": "26.5.61",
   "identifier": "com.gloves.wowadder",
   "build": {
-    "beforeDevCommand": "bun run dev",
+    "beforeDevCommand": "bun dev",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "bun run build",
     "frontendDist": "../dist"
@@ -14,7 +14,9 @@
       {
         "title": "WowAdder",
         "width": 1200,
-        "height": 800
+        "height": 800,
+        "scrollBarStyle": "fluentOverlay",
+        "center": true
       }
     ],
     "security": {
@@ -22,28 +24,19 @@
     }
   },
   "bundle": {
+    "createUpdaterArtifacts": true,
     "active": true,
     "targets": "msi",
-    "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
-    ]
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"]
   },
   "plugins": {
     "updater": {
-      "endpoints": [
-        "https://github.com/TheGloved1/WowAdder/releases/latest/download/updater.json"
-      ],
+      "endpoints": ["https://github.com/TheGloved1/WowAdder/releases/latest/download/updater.json"],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDhBNTQ5RDc0RERFNTJERjgKUldUNExlWGRkSjFVaXREZWpVeWo4ckowbHVpRjBpTmd2Y3pTMFhFVVBZekdBN2lvdnZqb2lGMlQK"
     },
     "deep-link": {
       "desktop": {
-        "schemes": [
-          "curseforge"
-        ]
+        "schemes": ["curseforge"]
       }
     }
   }
