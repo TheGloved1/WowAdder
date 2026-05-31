@@ -17,7 +17,12 @@ export default function Layout() {
   return (
     <div className='text-wow-text flex min-h-screen flex-col'>
       {showDialog && (
-        <Dialog open onOpenChange={(open) => { if (!open) dismissDialog(); }}>
+        <Dialog
+          open
+          onOpenChange={(open) => {
+            if (!open) dismissDialog();
+          }}
+        >
           <DialogContent className='max-w-lg'>
             <DialogHeader>
               <DialogTitle>Update Available</DialogTitle>
@@ -97,7 +102,7 @@ export default function Layout() {
               <Progress value={totalSize > 0 ? Math.min(100, (downloaded / totalSize) * 100) : 0} className='flex-1' />
               <span className='text-wow-text-dim w-12 shrink-0 text-right text-xs'>
                 {totalSize > 0 ?
-                  `${Math.min(99, Math.round((downloaded / totalSize) * 100))}%`
+                  `${Math.round((downloaded / totalSize) * 100)}%`
                 : `${(downloaded / 1024 / 1024).toFixed(1)} MB`}
               </span>
             </div>

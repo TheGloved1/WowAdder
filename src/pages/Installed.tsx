@@ -1,6 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { InstalledAddon, ScannedAddon } from '../services/addonManager';
@@ -17,6 +19,7 @@ import {
   scanAddonsFolder,
   uninstallAddon,
 } from '../services/addonManager';
+import type { InstallProgressPayload } from '../types/progress';
 
 export default function Installed() {
   const navigate = useNavigate();
@@ -31,6 +34,8 @@ export default function Installed() {
   const [adopting, setAdopting] = useState<string | null>(null);
   const [batchAdopting, setBatchAdopting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [importLabel, setImportLabel] = useState('');
   const [batchProgress, setBatchProgress] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -47,6 +52,17 @@ export default function Installed() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (!importing) return;
+    const unlisten = listen<InstallProgressPayload>('install-progress', (event) => {
+      setImportProgress(event.payload.progress);
+      setImportLabel(event.payload.label);
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [importing]);
 
   async function handlePickFolder() {
     const path = await pickAddonsFolder();
@@ -155,6 +171,8 @@ export default function Installed() {
   }
 
   async function handleImport() {
+    setImportProgress(0);
+    setImportLabel('');
     setImporting(true);
     try {
       const entries = await importZip();
@@ -260,9 +278,15 @@ export default function Installed() {
             : null}
             {scanning ? 'Scanning...' : 'Sync'}
           </Button>
-          <Button variant='default' size='sm' onClick={handleImport} disabled={importing}>
-            {importing ? 'Importing...' : 'Import ZIP'}
-          </Button>
+          {importing ?
+            <div className='flex w-48 items-center gap-2'>
+              <Progress value={importProgress} className='flex-1' />
+              <span className='text-wow-text-muted shrink-0 text-[10px]'>{importLabel}</span>
+            </div>
+          : <Button variant='default' size='sm' onClick={handleImport}>
+              Import ZIP
+            </Button>
+          }
         </div>
       </div>
 

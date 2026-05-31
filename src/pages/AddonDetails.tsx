@@ -3,8 +3,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
 import { WoWSeparator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
+import { InstallProgressPayload } from '@/types/progress';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { open } from '@tauri-apps/plugin-dialog';
@@ -59,6 +61,7 @@ export default function AddonDetails() {
   const [installedInfo, setInstalledInfo] = useState<ReturnType<typeof isAddonInstalled>>(undefined);
   const [installingFileId, setInstallingFileId] = useState<number | null>(null);
   const [installProgress, setInstallProgress] = useState(0);
+  const [installLabel, setInstallLabel] = useState('');
   const [installError, setInstallError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [versionFilterEnabled, setVersionFilterEnabled] = useState(true);
@@ -113,8 +116,9 @@ export default function AddonDetails() {
 
   useEffect(() => {
     if (installingFileId === null) return;
-    const unlisten = listen<number>('install-progress', (event) => {
-      setInstallProgress(event.payload);
+    const unlisten = listen<InstallProgressPayload>('install-progress', (event) => {
+      setInstallProgress(event.payload.progress);
+      setInstallLabel(event.payload.label);
     });
     return () => {
       unlisten.then((fn) => fn());
@@ -518,15 +522,10 @@ export default function AddonDetails() {
                     </div>
                     <div className='flex shrink-0 items-center gap-2'>
                       {installingFileId === file.id ?
-                        <div className='w-32'>
-                          <div className='bg-wow-panel border-wow-border-gold/30 relative h-2 overflow-hidden rounded-sm border'>
-                            <div
-                              className='from-wow-border-gold to-wow-gold absolute inset-0 bg-linear-to-r transition-all duration-300'
-                              style={{ width: `${installProgress}%` }}
-                            />
-                          </div>
+                        <div className='w-44'>
+                          <Progress value={installProgress} />
                           <span className='text-wow-text-muted font-wow-heading mt-0.5 block text-right text-[10px]'>
-                            {installProgress}%
+                            {installLabel}
                           </span>
                         </div>
                       : installedInfo && installedInfo.installedFileId === file.id ?
@@ -715,13 +714,8 @@ export default function AddonDetails() {
 
           {dialogPhase === 'installing' && (
             <>
-              <div className='bg-wow-panel border-wow-border-gold/30 relative h-2 overflow-hidden rounded-sm border'>
-                <div
-                  className='from-wow-border-gold to-wow-gold absolute inset-0 bg-linear-to-r transition-all duration-300'
-                  style={{ width: `${installProgress}%` }}
-                />
-              </div>
-              <span className='text-wow-text-muted font-wow-heading mt-1 block text-right text-xs'>{installProgress}%</span>
+              <Progress value={installProgress} />
+              <span className='text-wow-text-muted font-wow-heading mt-1 block text-right text-xs'>{installLabel}</span>
             </>
           )}
 
