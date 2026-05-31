@@ -1,3 +1,9 @@
+## [26.5.66] - 2026-05-31
+
+### Added
+
+- **install**: structured progress tracking with stage labels
+
 ## [26.5.65] - 2026-05-29
 
 ### Changed
