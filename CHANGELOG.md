@@ -1,3 +1,9 @@
+## [26.5.67] - 2026-05-31
+
+### Changed
+
+- **components**: replace inline search icon with Lucide Search component
+
 ## [26.5.66] - 2026-05-31
 
 ### Added
