@@ -1,3 +1,9 @@
+## [26.6.2] - 2026-06-12
+
+### Changed
+
+- **scripts**: generalize commit type regex in changelog generation
+
 ## [26.6.1] - 2026-06-12
 
 ### Other
