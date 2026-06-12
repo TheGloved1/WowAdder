@@ -1,3 +1,10 @@
+## [26.6.0] - 2026-06-12
+
+### Added
+
+- **tauri**: add NSIS as additional installer target
+- **settings**: add privacy and terms panels with inline markdown
+
 ## [26.5.67] - 2026-05-31
 
 ### Changed

@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "WowAdder"
-version = "26.5.67"
+version = "26.6.0"
 dependencies = [
  "dirs",
  "reqwest 0.12.28",
