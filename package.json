@@ -1,7 +1,7 @@
 {
   "name": "wowadder",
   "private": true,
-  "version": "26.6.0",
+  "version": "26.6.1",
   "license": "MIT",
   "type": "module",
   "packageManager": "bun",
