@@ -125,7 +125,7 @@ function generateChangelog(next: string, baseTag?: string): { changelogEntry: st
   const changed: string[] = [];
   const other: string[] = [];
 
-  const pattern = /^(feat|fix|refactor|perf|build|style|docs|test|chore)(\(.*?\))?!?:\s(.+)$/;
+  const pattern = /^(\w+)(\(.*?\))?!?:\s(.+)$/;
 
   for (const line of lines) {
     const m = line.match(pattern);

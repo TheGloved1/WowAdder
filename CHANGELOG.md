@@ -1,6 +1,8 @@
 ## [26.6.1] - 2026-06-12
 
-Maintenance release.
+### Other
+
+- **release**: add NSIS installer to release artifacts
 
 ## [26.6.0] - 2026-06-12
 
