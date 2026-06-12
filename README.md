@@ -22,7 +22,8 @@
   <a href="#getting-started">Getting Started</a> •
   <a href="#features">Features</a> •
   <a href="#how-its-different">How It's Different</a> •
-  <a href="#tech-stack">Tech Stack</a>
+  <a href="#tech-stack">Tech Stack</a> •
+  <a href="#license--policies">License & Policies</a>
 </p>
 
 ---
@@ -127,3 +128,12 @@ Requires [Bun](https://bun.sh/) and [Rust](https://www.rust-lang.org/).
 | Markdown          | react-markdown                                                                                                                         |
 | Build Tool        | Vite                                                                                                                                   |
 | Package Manager   | Bun                                                                                                                                    |
+| License           | [MIT](./LICENSE)                                                                                                                       |
+
+---
+
+## License & Policies
+
+- [MIT License](./LICENSE) — WowAdder is free and open-source software
+- [Privacy Policy](./PRIVACY.md) — What data is collected and how it's used
+- [Terms of Service](./TERMS.md) — Terms governing use of this software

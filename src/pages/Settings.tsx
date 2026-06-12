@@ -7,6 +7,8 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import changelogRaw from '../../CHANGELOG.md?raw';
+import privacyRaw from '../../PRIVACY.md?raw';
+import termsRaw from '../../TERMS.md?raw';
 import { version } from '../../package.json';
 import { useUpdate } from '../components/UpdateProvider';
 import { usePreferences } from '../hooks/usePreferences';
@@ -58,6 +60,8 @@ export default function Settings() {
   const { prefs, updatePrefs } = usePreferences();
   const { updateState, updateVersion, downloaded, totalSize, checkForUpdates, installUpdate } = useUpdate();
   const [changelogOpen, setChangelogOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
   const [watchFolders, setWatchFolders] = useState<string[]>(prefs.downloadWatchFolders);
 
   function handleFontChange(font: HeadingFont) {
@@ -369,6 +373,104 @@ export default function Settings() {
                 }}
               >
                 {changelogRaw}
+              </ReactMarkdown>
+            </div>
+          )}
+        </div>
+
+        <div className='mt-4'>
+          <div className='flex items-center justify-between'>
+            <button
+              onClick={() => setPrivacyOpen(!privacyOpen)}
+              className='text-wow-gold-dim hover:text-wow-gold flex items-center gap-2 text-left text-sm tracking-wider transition-colors'
+            >
+              <span className={`inline-block transition-transform duration-200 ${privacyOpen ? 'rotate-90' : ''}`}>
+                &#8250;
+              </span>
+              Privacy Policy
+            </button>
+            <a
+              href='https://github.com/TheGloved1/WowAdder/blob/main/PRIVACY.md'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-wow-text-muted hover:text-wow-gold text-xs tracking-wider transition-colors'
+            >
+              Open on GitHub &rarr;
+            </a>
+          </div>
+          {privacyOpen && (
+            <div className='bg-wow-bg border-wow-border mt-2 max-h-96 overflow-y-auto rounded-sm border p-4'>
+              <ReactMarkdown
+                components={{
+                  h1: ({ children }) => (
+                    <h1 className='font-wow-heading text-wow-gold mb-2 text-base tracking-wider'>{children}</h1>
+                  ),
+                  h2: ({ children }) => (
+                    <h2 className='font-wow-heading text-wow-gold-dim mt-4 mb-2 text-sm tracking-wider first:mt-0'>
+                      {children}
+                    </h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3 className='text-wow-text-dim mt-3 mb-1 text-xs font-semibold tracking-wider'>{children}</h3>
+                  ),
+                  p: ({ children }) => <p className='text-wow-text-dim mb-1 text-xs'>{children}</p>,
+                  ul: ({ children }) => (
+                    <ul className='text-wow-text-dim mb-2 ml-3 list-inside list-disc text-xs'>{children}</ul>
+                  ),
+                  li: ({ children }) => <li className='mb-0.5'>{children}</li>,
+                  strong: ({ children }) => <strong className='text-wow-text'>{children}</strong>,
+                }}
+              >
+                {privacyRaw}
+              </ReactMarkdown>
+            </div>
+          )}
+        </div>
+
+        <div className='mt-4'>
+          <div className='flex items-center justify-between'>
+            <button
+              onClick={() => setTermsOpen(!termsOpen)}
+              className='text-wow-gold-dim hover:text-wow-gold flex items-center gap-2 text-left text-sm tracking-wider transition-colors'
+            >
+              <span className={`inline-block transition-transform duration-200 ${termsOpen ? 'rotate-90' : ''}`}>
+                &#8250;
+              </span>
+              Terms of Service
+            </button>
+            <a
+              href='https://github.com/TheGloved1/WowAdder/blob/main/TERMS.md'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-wow-text-muted hover:text-wow-gold text-xs tracking-wider transition-colors'
+            >
+              Open on GitHub &rarr;
+            </a>
+          </div>
+          {termsOpen && (
+            <div className='bg-wow-bg border-wow-border mt-2 max-h-96 overflow-y-auto rounded-sm border p-4'>
+              <ReactMarkdown
+                components={{
+                  h1: ({ children }) => (
+                    <h1 className='font-wow-heading text-wow-gold mb-2 text-base tracking-wider'>{children}</h1>
+                  ),
+                  h2: ({ children }) => (
+                    <h2 className='font-wow-heading text-wow-gold-dim mt-4 mb-2 text-sm tracking-wider first:mt-0'>
+                      {children}
+                    </h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3 className='text-wow-text-dim mt-3 mb-1 text-xs font-semibold tracking-wider'>{children}</h3>
+                  ),
+                  p: ({ children }) => <p className='text-wow-text-dim mb-1 text-xs'>{children}</p>,
+                  ul: ({ children }) => (
+                    <ul className='text-wow-text-dim mb-2 ml-3 list-inside list-disc text-xs'>{children}</ul>
+                  ),
+                  li: ({ children }) => <li className='mb-0.5'>{children}</li>,
+                  strong: ({ children }) => <strong className='text-wow-text'>{children}</strong>,
+                }}
+              >
+                {termsRaw}
               </ReactMarkdown>
             </div>
           )}

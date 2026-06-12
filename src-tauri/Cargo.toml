@@ -3,6 +3,7 @@ name = "WowAdder"
 version = "26.5.67"
 description = "A Tauri App for managing World of Warcraft addons"
 authors = ["TheGloved1"]
+license = "MIT"
 edition = "2021"
 
 [lib]
