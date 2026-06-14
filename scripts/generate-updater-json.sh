@@ -51,7 +51,7 @@ if [ -n "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
     -k "$TAURI_SIGNING_PRIVATE_KEY" \
     -p "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" \
     "$BUNDLE_FILE" 2>/dev/null || true)
-  SIGNATURE=$(echo "$SIGNER_OUTPUT" | sed -n '/^Public signature:/{n;p}')
+  SIGNATURE=$(echo "$SIGNER_OUTPUT" | awk '/^Public signature:/{getline; print}')
   if [ -n "$SIGNATURE" ]; then
     echo "Signature generated successfully (${#SIGNATURE} chars)"
   fi
