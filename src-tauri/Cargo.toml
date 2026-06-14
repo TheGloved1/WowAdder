@@ -1,6 +1,6 @@
 [package]
 name = "WowAdder"
-version = "26.6.2"
+version = "26.6.3"
 description = "A Tauri App for managing World of Warcraft addons"
 authors = ["TheGloved1"]
 license = "MIT"

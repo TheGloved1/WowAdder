@@ -1,3 +1,17 @@
+## [26.6.3] - 2026-06-14
+
+### Added
+
+- **ci**: cross-platform build matrix with multi-arch updater support
+
+### Fixed
+
+- **config**: switch webview install mode to offlineInstaller and compact array formatting
+
+### Other
+
+- **scripts**: refactor signature extraction in updater JSON script
+
 ## [26.6.2] - 2026-06-12
 
 ### Changed
