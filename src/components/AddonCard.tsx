@@ -1,5 +1,6 @@
 import { Clock3, Download, Gamepad2 } from 'lucide-react';
 import { isAddonInstalled } from '../services/addonManager';
+import { getFileGameVersion } from '../services/curseforge';
 import type { CF2Addon } from '../types/curseforge';
 import { Badge } from './ui/badge';
 import WoWIconFrame from './wow/WoWIcon';
@@ -17,7 +18,7 @@ function formatDownloads(num: number): string {
 
 export default function AddonCard({ addon, onClick }: AddonCardProps) {
   const latestRelease = addon.latestFiles?.find((f) => f.releaseType === 1) ?? addon.latestFiles?.[0];
-  const gameVersion = latestRelease?.gameVersions?.slice(-1)[0] ?? '';
+  const gameVersion = latestRelease ? (getFileGameVersion(latestRelease) ?? '') : '';
   const fileDate = latestRelease?.fileDate ? new Date(latestRelease.fileDate) : null;
   const dateStr = fileDate ? fileDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
   const installed = isAddonInstalled(addon.id);

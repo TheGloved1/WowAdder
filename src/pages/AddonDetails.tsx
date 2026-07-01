@@ -27,6 +27,7 @@ import {
   uninstallAddon,
   watchForDownload,
 } from '../services/addonManager';
+import { getFileGameVersion } from '../services/curseforge';
 import { loadPrefs, savePrefs } from '../services/preferences';
 import type { CF2File, CF2Pagination } from '../types/curseforge';
 
@@ -163,22 +164,16 @@ export default function AddonDetails() {
           return;
         }
       }
+      const fileVersion = getFileGameVersion(file);
       console.log('[DEBUG] Calling installAddon with:', {
         addonId: addon.id,
         fileId: file.id,
         fileName: file.fileName,
         slug: addon.slug,
-        version: file.gameVersions?.slice(-1)[0] ?? null,
+        version: fileVersion,
         downloadUrl: file.downloadUrl,
       });
-      await installAddon(
-        addon,
-        file.id,
-        addon.slug,
-        file.gameVersions?.slice(-1)[0] ?? null,
-        file.downloadUrl,
-        file.fileName,
-      );
+      await installAddon(addon, file.id, addon.slug, fileVersion, file.downloadUrl, file.fileName);
       console.log('[DEBUG] installAddon completed successfully');
       setInstalledInfo(isAddonInstalled(addon.id));
     } catch (err) {
@@ -302,14 +297,7 @@ export default function AddonDetails() {
         }
       }
 
-      await installFromZip(
-        foundZipPath,
-        addon,
-        dialogFile.id,
-        addon.slug,
-        dialogFile.gameVersions?.slice(-1)[0] ?? null,
-        dialogDeleteZip,
-      );
+      await installFromZip(foundZipPath, addon, dialogFile.id, addon.slug, getFileGameVersion(dialogFile), dialogDeleteZip);
 
       setInstalledInfo(isAddonInstalled(addon.id));
       setDialogOpen(false);

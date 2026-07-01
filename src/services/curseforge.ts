@@ -141,6 +141,16 @@ export async function getModFileDownloadUrl(modId: number, fileId: number) {
   return result.data?.data ?? null;
 }
 
+export function getFileGameVersion(file: {
+  gameVersions?: string[];
+  sortableGameVersions?: { gameVersion: string; gameVersionTypeId?: number }[];
+}): string | null {
+  const retail = file.sortableGameVersions?.find((v) => v.gameVersionTypeId === 517);
+  if (retail?.gameVersion) return retail.gameVersion;
+  const versions = file.gameVersions?.filter((v) => !/^\d+$/.test(v));
+  return versions?.[0] ?? null;
+}
+
 export async function getModDescription(modId: number) {
   const c = getClient();
   const result = await c.getModDescription(modId);

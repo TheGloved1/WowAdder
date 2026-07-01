@@ -1,9 +1,11 @@
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import { open } from '@tauri-apps/plugin-dialog';
 import { exists, mkdir, readDir, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { load } from '@tauri-apps/plugin-store';
 import type { CF2Addon } from '../types/curseforge';
+import type { InstallProgressPayload } from '../types/progress';
 import { getMod, getModFileDownloadUrl, searchMods } from './curseforge';
 import { DEFAULTS, loadPrefs, savePrefs } from './preferences';
 
@@ -248,6 +250,125 @@ export async function installAddon(
 
   await saveDb(db);
   console.log('[DEBUG installAddon] saveDb complete');
+}
+
+export async function updateAddon(
+  addon: CF2Addon,
+  fileId: number,
+  folderName: string,
+  version: string | null,
+  onProgress?: (progress: number, label: string) => void,
+  fileDownloadUrl?: string,
+  fileName?: string,
+): Promise<void> {
+  const folder = await getAddonsFolder();
+  if (!folder) throw new Error('Addons folder not configured');
+  if (!cachedDb) throw new Error('Database not loaded');
+
+  onProgress?.(5, 'Preparing...');
+
+  const existing = cachedDb.installed.find((a) => a.modId === addon.id);
+  const oldSnapshot: InstalledAddon | null = existing ? JSON.parse(JSON.stringify(existing)) : null;
+  const oldFolders: string[] | null =
+    oldSnapshot ?
+      oldSnapshot.folderNames?.length ?
+        [...oldSnapshot.folderNames]
+      : [oldSnapshot.folderName]
+    : null;
+
+  let downloadUrl: string | undefined | null = fileDownloadUrl;
+  if (!downloadUrl) {
+    if (fileName) {
+      const chunk1 = Math.floor(fileId / 1000);
+      const chunk2 = fileId % 1000;
+      downloadUrl = `https://edge.forgecdn.net/files/${chunk1}/${chunk2}/${fileName}`;
+    }
+  }
+  if (!downloadUrl) {
+    downloadUrl = await getModFileDownloadUrl(addon.id, fileId);
+  }
+  if (!downloadUrl) {
+    throw new Error(`Could not get download URL for file ${fileId} (addon ${addon.id}).`);
+  }
+
+  onProgress?.(15, 'Downloading...');
+
+  let entries: string[] = [folderName];
+  try {
+    const unlistenTauri = await listen<InstallProgressPayload>('install-progress', (event) => {
+      onProgress?.(event.payload.progress, event.payload.label);
+    });
+    try {
+      const result = await invoke<string>('install_addon', { downloadUrl, targetDir: folder, folderName });
+      const parsed = JSON.parse(result);
+      if (parsed.entries?.length) {
+        entries = parsed.entries;
+      }
+    } finally {
+      unlistenTauri();
+    }
+  } catch (err) {
+    throw err;
+  }
+
+  onProgress?.(60, 'Updating database...');
+
+  try {
+    if (existing) {
+      existing.folderName = entries[0];
+      existing.folderNames = entries;
+      existing.installedFileId = fileId;
+      existing.installedVersion = version;
+      existing.installedAt = new Date().toISOString();
+    } else {
+      cachedDb.installed.push({
+        modId: addon.id,
+        name: addon.name,
+        slug: addon.slug,
+        folderName: entries[0],
+        folderNames: entries,
+        installedFileId: fileId,
+        installedVersion: version,
+        installedAt: new Date().toISOString(),
+      });
+    }
+
+    await saveDb(cachedDb);
+  } catch (dbErr) {
+    if (oldSnapshot && existing) {
+      Object.assign(existing, oldSnapshot);
+      await saveDb(cachedDb).catch(() => {});
+    }
+    for (const entry of entries) {
+      try {
+        const dir = `${folder}/${entry}`;
+        if (await exists(dir)) {
+          await remove(dir, { recursive: true });
+        }
+      } catch {
+        // non-critical cleanup
+      }
+    }
+    throw dbErr;
+  }
+
+  onProgress?.(80, 'Cleaning up...');
+
+  if (oldFolders) {
+    for (const name of oldFolders) {
+      if (entries.includes(name)) continue;
+      try {
+        const dir = `${folder}/${name}`;
+        if (await exists(dir)) {
+          await remove(dir, { recursive: true });
+        }
+      } catch {
+        // non-critical
+      }
+    }
+  }
+
+  onProgress?.(100, 'Done');
 }
 
 export async function uninstallAddon(modId: number): Promise<void> {

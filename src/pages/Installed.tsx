@@ -1,10 +1,14 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAddonUpdateChecker } from '../hooks/useCurseforge';
+import { usePreferences } from '../hooks/usePreferences';
 import type { InstalledAddon, ScannedAddon } from '../services/addonManager';
 import {
   adoptAllScannedAddons,
@@ -18,7 +22,10 @@ import {
   pickAddonsFolder,
   scanAddonsFolder,
   uninstallAddon,
+  updateAddon,
 } from '../services/addonManager';
+import { getFileGameVersion } from '../services/curseforge';
+import type { UpdateInfo } from '../types/curseforge';
 import type { InstallProgressPayload } from '../types/progress';
 
 export default function Installed() {
@@ -37,6 +44,24 @@ export default function Installed() {
   const [importProgress, setImportProgress] = useState(0);
   const [importLabel, setImportLabel] = useState('');
   const [batchProgress, setBatchProgress] = useState<string | null>(null);
+  const [updateResults, setUpdateResults] = useState<Record<number, UpdateInfo>>({});
+  const [checkingUpdates, setCheckingUpdates] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState<{ addon: InstalledAddon; info: UpdateInfo } | null>(null);
+  const [installingUpdates, setInstallingUpdates] = useState<
+    Record<number, { progress: number; label: string; error?: string }>
+  >({});
+
+  const { checkAll } = useAddonUpdateChecker();
+  const { prefs } = usePreferences();
+  const gameVersion = prefs.versions[0];
+
+  function formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+  }
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -192,6 +217,88 @@ export default function Installed() {
     }
   }
 
+  async function handleCheckUpdates() {
+    setCheckingUpdates(true);
+    setUpdateResults({});
+    try {
+      const results = await checkAll(installed, gameVersion, (done, total) => {
+        setBatchProgress(`Checking ${done}/${total}: ${installed[done - 1]?.name ?? '...'}`);
+      });
+      setUpdateResults(results);
+    } finally {
+      setCheckingUpdates(false);
+      setBatchProgress(null);
+    }
+  }
+
+  async function handleInstallUpdate() {
+    if (!confirmTarget || !confirmTarget.info.latestFile) return;
+    const { addon, info } = confirmTarget;
+    const mod = info.latestFile;
+    if (!mod) return;
+    const updateVersion = getFileGameVersion(mod) || addon.installedVersion || '';
+    setConfirmTarget(null);
+
+    const modId = addon.modId;
+    setInstallingUpdates((prev) => ({ ...prev, [modId]: { progress: 0, label: 'Starting...' } }));
+
+    try {
+      await updateAddon(
+        { name: addon.name, slug: addon.slug, id: modId } as any,
+        mod.id,
+        addon.folderName,
+        updateVersion,
+        (progress: number, label: string) => {
+          setInstallingUpdates((prev) => ({ ...prev, [modId]: { progress, label } }));
+        },
+        undefined,
+        mod.fileName,
+      );
+      await refresh();
+      setUpdateResults((prev) => {
+        const next = { ...prev };
+        delete next[modId];
+        return next;
+      });
+      setInstallingUpdates((prev) => {
+        const next = { ...prev };
+        delete next[modId];
+        return next;
+      });
+    } catch (e) {
+      setInstallingUpdates((prev) => ({
+        ...prev,
+        [modId]: { progress: 0, label: 'Failed', error: String(e) },
+      }));
+      setTimeout(() => {
+        setInstallingUpdates((prev) => {
+          const next = { ...prev };
+          delete next[modId];
+          return next;
+        });
+      }, 8000);
+    }
+  }
+
+  const initialCheckDone = useRef(false);
+  useEffect(() => {
+    if (loading || installed.length === 0 || initialCheckDone.current) return;
+    initialCheckDone.current = true;
+    (async () => {
+      const results = await checkAll(installed, gameVersion);
+      setUpdateResults(results);
+    })();
+  }, [loading, installed, checkAll, gameVersion]);
+
+  const updateSummary = useMemo(() => {
+    const entries = Object.values(updateResults);
+    return {
+      updates: entries.filter((r) => r.status === 'update-available').length,
+      downgrades: entries.filter((r) => r.status === 'downgrade-available').length,
+      done: entries.length,
+    };
+  }, [updateResults]);
+
   const unmatchedCount = scanned.filter((s) => !s.matched).length;
   const matchableCount = scanned.filter((s) => s.matched && s.matchModId && !s.adoptError).length;
 
@@ -287,6 +394,22 @@ export default function Installed() {
               Import ZIP
             </Button>
           }
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={handleCheckUpdates}
+            disabled={checkingUpdates || installed.length === 0}
+          >
+            {checkingUpdates ?
+              <svg className='h-3.5 w-3.5 animate-spin' viewBox='0 0 24 24'>
+                <circle className='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='4' fill='none' />
+                <path className='opacity-75' fill='currentColor' d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z' />
+              </svg>
+            : null}
+            {checkingUpdates ?
+              'Checking...'
+            : `Check Updates${updateSummary.done > 0 ? ` (${updateSummary.updates + updateSummary.downgrades})` : ''}`}
+          </Button>
         </div>
       </div>
 
@@ -405,43 +528,140 @@ export default function Installed() {
           </Link>
         </div>
       : <Card className='divide-wow-border-light divide-y'>
-          {installed.map((addon) => (
-            <div key={addon.modId} className='hover:bg-wow-panel-hover/50 p-4 transition-colors'>
-              <div className='flex items-start justify-between gap-4'>
-                <div className='min-w-0 flex-1'>
-                  <button
-                    onClick={() => navigate(`/addon/${addon.modId}`)}
-                    className='font-wow-heading text-wow-text hover:text-wow-gold text-left text-sm tracking-wide transition-colors'
-                  >
-                    {addon.name}
-                  </button>
-                  <div className='mt-1 flex flex-wrap gap-1'>
-                    {(addon.folderNames?.length ? addon.folderNames : [addon.folderName]).map((f) => (
-                      <span key={f} className='bg-wow-panel text-wow-text-muted rounded-sm px-1.5 py-0.5 text-[10px]'>
-                        {f}
+          {installed.map((addon) => {
+            const updateInfo = updateResults[addon.modId];
+            return (
+              <div key={addon.modId} className='hover:bg-wow-panel-hover/50 p-4 transition-colors'>
+                <div className='flex items-start justify-between gap-4'>
+                  <div className='min-w-0 flex-1'>
+                    <button
+                      onClick={() => navigate(`/addon/${addon.modId}`)}
+                      className='font-wow-heading text-wow-text hover:text-wow-gold text-left text-sm tracking-wide transition-colors'
+                    >
+                      {addon.name}
+                    </button>
+                    <div className='mt-1 flex flex-wrap gap-1'>
+                      {(addon.folderNames?.length ? addon.folderNames : [addon.folderName]).map((f) => (
+                        <span key={f} className='bg-wow-panel text-wow-text-muted rounded-sm px-1.5 py-0.5 text-[10px]'>
+                          {f}
+                        </span>
+                      ))}
+                    </div>
+                    <div className='mt-1 flex items-center gap-3'>
+                      <span className='text-wow-text-muted text-[11px]'>v{addon.installedVersion || '?'}</span>
+                      <span className='text-wow-text-muted text-[11px]'>
+                        {new Date(addon.installedAt).toLocaleDateString()}
                       </span>
-                    ))}
+                    </div>
+                    {updateInfo?.status === 'up-to-date' ?
+                      <p className='text-wow-quality-green mt-1 text-[11px]'>Up to date</p>
+                    : updateInfo?.status === 'no-compatible-version' ?
+                      <p className='text-wow-text-muted mt-1 text-[11px]'>No release files found</p>
+                    : updateInfo?.status === 'error' ?
+                      <p className='text-wow-danger mt-1 text-[11px]' title={updateInfo.error}>
+                        Check failed
+                      </p>
+                    : null}
                   </div>
-                  <div className='mt-1 flex items-center gap-3'>
-                    <span className='text-wow-text-muted text-[11px]'>v{addon.installedVersion || '?'}</span>
-                    <span className='text-wow-text-muted text-[11px]'>
-                      {new Date(addon.installedAt).toLocaleDateString()}
-                    </span>
+                  <div className='flex shrink-0 items-start gap-2'>
+                    {installingUpdates[addon.modId] && !installingUpdates[addon.modId].error ?
+                      <div className='w-36'>
+                        <Progress value={installingUpdates[addon.modId].progress} />
+                        <span className='text-wow-text-muted font-wow-heading mt-0.5 block text-right text-[10px]'>
+                          {installingUpdates[addon.modId].label}
+                        </span>
+                      </div>
+                    : installingUpdates[addon.modId]?.error ?
+                      <Button variant='primary' size='sm' onClick={() => setConfirmTarget({ addon, info: updateInfo! })}>
+                        Retry
+                      </Button>
+                    : updateInfo?.status === 'update-available' && updateInfo.latestFile ?
+                      <Button variant='primary' size='sm' onClick={() => setConfirmTarget({ addon, info: updateInfo })}>
+                        Update
+                      </Button>
+                    : updateInfo?.status === 'downgrade-available' && updateInfo.latestFile ?
+                      <Button variant='outline' size='sm' onClick={() => setConfirmTarget({ addon, info: updateInfo })}>
+                        Downgrade
+                      </Button>
+                    : null}
+                    <Button
+                      variant='destructive'
+                      size='sm'
+                      onClick={() => handleUninstall(addon.modId)}
+                      disabled={uninstalling === addon.modId || !!installingUpdates[addon.modId]}
+                    >
+                      {uninstalling === addon.modId ? 'Removing...' : 'Uninstall'}
+                    </Button>
                   </div>
                 </div>
-                <Button
-                  variant='destructive'
-                  size='sm'
-                  onClick={() => handleUninstall(addon.modId)}
-                  disabled={uninstalling === addon.modId}
-                >
-                  {uninstalling === addon.modId ? 'Removing...' : 'Uninstall'}
-                </Button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </Card>
       }
+      <Dialog
+        open={!!confirmTarget}
+        onOpenChange={(open) => {
+          if (!open) setConfirmTarget(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{confirmTarget?.info.status === 'downgrade-available' ? 'Downgrade' : 'Update'} Addon</DialogTitle>
+            <DialogDescription>{confirmTarget?.addon.name}</DialogDescription>
+          </DialogHeader>
+
+          <div className='space-y-3 text-sm'>
+            <div>
+              <p className='text-wow-text-dim mb-1 text-xs tracking-wide uppercase'>Current</p>
+              <div className='bg-wow-bg rounded-sm border p-2 text-xs'>
+                <p className='text-wow-text'>File #{confirmTarget?.addon.installedFileId}</p>
+                <p className='text-wow-text-muted'>Game: v{confirmTarget?.addon.installedVersion || '?'}</p>
+                <p className='text-wow-text-muted'>
+                  Installed:{' '}
+                  {confirmTarget?.addon.installedAt ? new Date(confirmTarget.addon.installedAt).toLocaleDateString() : '?'}
+                </p>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <p className='text-wow-text-dim mb-1 text-xs tracking-wide uppercase'>New</p>
+              <div className='bg-wow-bg rounded-sm border p-2 text-xs'>
+                <p className='text-wow-text'>{confirmTarget?.info.latestFile?.displayName}</p>
+                <p className='text-wow-text-muted'>File #{confirmTarget?.info.latestFile?.id} &middot; Release</p>
+                <p className='text-wow-text-muted'>
+                  Game: {confirmTarget?.info.latestFile?.gameVersions?.join(', ') || '?'}
+                </p>
+                <p className='text-wow-text-muted'>
+                  Released:{' '}
+                  {confirmTarget?.info.latestFile?.fileDate ?
+                    new Date(confirmTarget.info.latestFile.fileDate).toLocaleDateString()
+                  : '?'}
+                </p>
+                <p className='text-wow-text-muted'>
+                  Size:{' '}
+                  {confirmTarget?.info.latestFile?.fileLength ? formatBytes(confirmTarget.info.latestFile.fileLength) : '?'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className='mt-4 flex items-center justify-end gap-2'>
+            <Button variant='default' size='md' onClick={() => setConfirmTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant={confirmTarget?.info.status === 'downgrade-available' ? 'destructive' : 'primary'}
+              size='md'
+              onClick={handleInstallUpdate}
+            >
+              {confirmTarget?.info.status === 'downgrade-available' ? 'Downgrade' : 'Update'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
