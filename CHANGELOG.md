@@ -1,3 +1,13 @@
+## [26.7.0] - 2026-07-01
+
+### Added
+
+- **installed**: add update checking and one-click update install
+
+### Fixed
+
+- **config**: switch webview install mode to downloadBootstrapper and compact arrays
+
 ## [26.6.3] - 2026-06-14
 
 ### Added
