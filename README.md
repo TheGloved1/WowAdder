@@ -49,7 +49,6 @@
 - **Multi-category filtering** — Sidebar with 60+ CurseForge categories. Three-state toggle: include, exclude, or ignore.
 - **CurseForge deep link** — Registers the `curseforge://` protocol so CurseForge "Install" buttons open in WowAdder instead of the official client.
 - **Game version selection** — Pick the exact WoW patch to search addons for. Compatible with any version including private server clients.
-- **Customizable themes** — 5 WoW-inspired color schemes and a heading font picker with 20+ fantasy fonts.
 
 ## How It's Different
 
