@@ -81,7 +81,7 @@ Scans your `Interface/AddOns` folder by parsing `.toc` metadata files. Detects a
 
 ### Installation
 
-1. Download the latest installer for your platform from [Releases](https://github.com/TheGloved1/WowAdder/releases)
+1. Download the latest installer for your platform from [Releases](https://github.com/TheGloved1/WowAdder/releases) or [Downloads](https://gloved.dev/wowadder/download)
 2. Run the installer
 3. Launch WowAdder and select your World of Warcraft `Interface/AddOns` folder
 
