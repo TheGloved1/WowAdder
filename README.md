@@ -46,20 +46,10 @@
   <em>Manage installed addons with update checking and batch operations</em>
 </p>
 
-- **Browse & search** — Search addons by name with debounced input. Query is persisted across sessions.
-- **Multi-category filtering** — Sidebar with 60+ CurseForge categories. Three-state toggle: include, exclude, or ignore. Active filter counts shown per section.
-- **Game version selection** — Filter addons by specific WoW patch versions. Multiple versions can be selected simultaneously and are searched via raw API requests.
-- **One-click install** — Installs directly to `Interface/AddOns` with structured progress tracking (stage labels + progress bars via Tauri events).
-- **CurseForge deep link** — Registers the `curseforge://` protocol so "Install with CurseForge" buttons open in WowAdder instead of the official client.
-- **Version-aware file picker** — Browse all files for an addon, filtered by game version, with pagination. Shows release type, upload date, and file size.
-- **External addon detection** — Scans `Interface/AddOns` for unmanaged addons by parsing `.toc` metadata files. Matches them to CurseForge entries for import.
-- **Batch sync** — Match and adopt multiple external addons at once with progress tracking.
-- **Update checking** — Checks all installed addons against the latest CurseForge releases. Shows per-addon status (up-to-date, update available, downgrade available, or error). One-click update install with progress feedback and confirmation dialog comparing versions.
-- **ZIP import** — Import addon ZIP archives directly via the Rust backend. Supports auto-deletion after install.
-- **CurseForge author links** — Author names are clickable links to their CurseForge profiles.
-- **Support Developers mode** — Toggle that routes installs through CurseForge download pages (counting your download) instead of direct CDN. Watches specified folders for the downloaded ZIP and installs automatically.
-- **Customizable themes** — 5 color schemes inspired by WoW: Classic Gold, Emerald Green, Crimson, Night Elf Purple, and Frost Blue. Heading font picker with 20+ fantasy fonts.
-- **Auto-updater** — Built-in Tauri updater with changelog dialog. Checks for new versions on launch and in Settings.
+- **Multi-category filtering** — Sidebar with 60+ CurseForge categories. Three-state toggle: include, exclude, or ignore.
+- **CurseForge deep link** — Registers the `curseforge://` protocol so CurseForge "Install" buttons open in WowAdder instead of the official client.
+- **Game version selection** — Pick the exact WoW patch to search addons for. Compatible with any version including private server clients.
+- **Customizable themes** — 5 WoW-inspired color schemes and a heading font picker with 20+ fantasy fonts.
 
 ## How It's Different
 
@@ -80,18 +70,6 @@ By default, installing opens the CurseForge download page directly in your brows
 ### Smart Addon Detection
 
 Scans your `Interface/AddOns` folder by parsing `.toc` metadata files. Detects addons installed outside WowAdder and can match and adopt them into its database — no manual reinstallation required.
-
-### Safe Upgrades
-
-When upgrading an addon, downloads and extracts the new version before removing old folders — eliminating the window where addon files are missing if something goes wrong mid-update.
-
-### Multi-Folder Addon Support
-
-Handles addons that span multiple folders. Tracks all folder names per addon for clean uninstall and upgrade.
-
-### Structured Install Progress
-
-Installs emit real-time progress events with stage labels (downloading, extracting, updating database, cleaning up) and percentage progress bars.
 
 ---
 
