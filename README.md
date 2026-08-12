@@ -11,7 +11,7 @@
 <h1 align="center">WowAdder</h1>
 
 <p align="center">
-  <strong>A lightweight, native World of Warcraft addon manager</strong>
+  <strong>A lightweight, "native" World of Warcraft addon manager</strong>
   <br/>
   Built with Tauri v2, React 19, and the CurseForge Core API v2.
   <br/>
@@ -52,9 +52,9 @@
 
 ## How It's Different
 
-### Lightweight & Native (No Electron)
+### Lightweight & "Native" (No Electron)
 
-Built on [**Tauri v2**](https://v2.tauri.app/) with a Rust backend and compiled installers (~5 MB per platform). No Electron overhead, no bundled Chromium, no excessive RAM usage. The frontend is a lean React 19 + [Tailwind CSS v4](https://tailwindcss.com/) app served by your OS's native webview.
+Built on [**Tauri v2**](https://v2.tauri.app/) with a Rust backend and compiled installers (~5 MB per platform). No excessive RAM usage. The frontend is a lean React 19 + [Tailwind CSS v4](https://tailwindcss.com/) app served by your OS's native webview.
 
 Available for **Windows** (MSI + NSIS), **Linux** (deb + AppImage + rpm), and **macOS** (DMG + app bundle).
 
@@ -102,7 +102,7 @@ Requires [Bun](https://bun.sh/) and [Rust](https://www.rust-lang.org/).
 
 | Layer             | Technology                                                                                                                             |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Desktop Framework | [Tauri v2](https://v2.tauri.app/) (Rust backend)                                                                                       |
+| Desktop Framework | [Tauri](https://v2.tauri.app/) (Rust backend)                                                                                          |
 | Frontend          | React + TypeScript                                                                                                                     |
 | Data Fetching     | TanStack Query                                                                                                                         |
 | UI Components     | [shadcn/ui](https://ui.shadcn.com/) + Radix primitives                                                                                 |
