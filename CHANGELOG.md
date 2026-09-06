@@ -1,3 +1,19 @@
+## [26.9.1] - 2026-09-06
+
+### Fixed
+
+- **release**: include body commits in changelog and revert on decline
+- **release**: handle piped input for sequential prompts
+- **release**: detect piped input via fstat for sequential prompts
+
+### Changed
+
+- **settings**: use Using Browser/Fast Install labels
+
+### Other
+
+- **ci**: bump upload/download artifact to v7
+
 ## [26.9.0] - 2026-09-06
 
 ### Fixed
