@@ -133,7 +133,7 @@ export default function AddonDetails() {
     }
 
     const prefs = loadPrefs();
-    if (prefs.supportDevs) {
+    if (prefs.browserInstall) {
       openDownloadDialog(file);
       return;
     }

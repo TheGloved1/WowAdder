@@ -74,8 +74,8 @@ export default function Settings() {
     updatePrefs({ colorScheme: scheme });
   }
 
-  async function handleSupportDevsToggle(checked: boolean) {
-    updatePrefs({ supportDevs: checked });
+  async function handleBrowserInstallToggle(checked: boolean) {
+    updatePrefs({ browserInstall: checked });
     if (checked && watchFolders.length === 0) {
       const defaultPath = await getDefaultDownloadsFolder();
       if (defaultPath) {
@@ -176,22 +176,22 @@ export default function Settings() {
 
         <WoWSeparator className='my-6' />
 
-        <h2 className='font-wow-heading text-wow-gold mb-1 text-lg tracking-wider'>Support Developers</h2>
+        <h2 className='font-wow-heading text-wow-gold mb-1 text-lg tracking-wider'>Browser Install</h2>
         <p className='text-wow-text-dim mb-4 text-sm leading-relaxed'>
           When enabled, clicking Install opens the CurseForge download page for that version in your browser. After you
           download the file through CurseForge, WowAdder detects the ZIP in your watched folders and installs it
           automatically. This supports addon authors through CurseForge's ad impressions and download tracking.
         </p>
         <label className='flex cursor-pointer items-center gap-3'>
-          <Switch checked={prefs.supportDevs} onCheckedChange={handleSupportDevsToggle} />
+          <Switch checked={prefs.browserInstall} onCheckedChange={handleBrowserInstallToggle} />
           <span
-            className={`font-wow-heading text-sm tracking-wider ${prefs.supportDevs ? 'text-wow-gold' : 'text-wow-text-dim'}`}
+            className={`font-wow-heading text-sm tracking-wider ${prefs.browserInstall ? 'text-wow-gold' : 'text-wow-text-dim'}`}
           >
-            {prefs.supportDevs ? 'Supporting developers' : 'Not supporting developers'}
+            {prefs.browserInstall ? 'Browser Install' : 'Fast Install'}
           </span>
         </label>
 
-        {prefs.supportDevs && (
+        {prefs.browserInstall && (
           <>
             <div className='mt-4'>
               <p className='text-wow-text-dim mb-2 text-xs'>Watched download folders:</p>

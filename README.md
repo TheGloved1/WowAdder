@@ -64,7 +64,7 @@ Connects directly to the **CurseForge Core API v2** (official API) using a bundl
 
 ### CurseForge Downloads
 
-By default, installing opens the CurseForge download page directly in your browser, instantly starting the download — supporting addon authors by counting your downloads. WowAdder watches your download folders and imports the ZIP automatically. Disable "Support Developers" in Settings to use the CDN directly for a one-click flow.
+By default, installing opens the CurseForge download page directly in your browser, instantly starting the download — supporting addon authors by counting your downloads. WowAdder watches your download folders and imports the ZIP automatically. Disable "Browser Install" in Settings to use the CDN directly for a one-click flow.
 
 ### Smart Addon Detection
 

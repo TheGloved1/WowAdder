@@ -33,7 +33,7 @@ export type Preferences = {
   sortOption: SortOption;
   colorScheme: ColorScheme;
   headingFont: HeadingFont;
-  supportDevs: boolean;
+  browserInstall: boolean;
   downloadWatchFolders: string[];
   deleteZipAfterInstall: boolean;
   deepLink: boolean;
@@ -48,7 +48,7 @@ export const DEFAULTS: Preferences = {
   sortOption: { label: 'Most Downloads', field: 6, order: 'desc' },
   colorScheme: 'default',
   headingFont: 'Caudex',
-  supportDevs: true,
+  browserInstall: true,
   downloadWatchFolders: [],
   deleteZipAfterInstall: true,
   deepLink: false,
@@ -62,6 +62,10 @@ export function loadPrefs(): Preferences {
     const raw = localStorage.getItem(`${PREFIX}settings`);
     if (raw) {
       const parsed = JSON.parse(raw);
+      // Migration: supportDevs -> browserInstall
+      if (typeof parsed.browserInstall === 'undefined' && typeof parsed.supportDevs !== 'undefined') {
+        parsed.browserInstall = parsed.supportDevs;
+      }
       return { ...DEFAULTS, ...parsed };
     }
   } catch {}
@@ -71,5 +75,9 @@ export function loadPrefs(): Preferences {
 export function savePrefs(prefs: Partial<Preferences>) {
   const current = loadPrefs();
   const merged = { ...current, ...prefs };
+  // Clean up legacy key if present
+  if ('supportDevs' in (merged as Record<string, unknown>)) {
+    delete (merged as Record<string, unknown>).supportDevs;
+  }
   localStorage.setItem(`${PREFIX}settings`, JSON.stringify(merged));
 }

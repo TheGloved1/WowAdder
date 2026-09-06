@@ -11,7 +11,7 @@ WowAdder is a desktop addon manager for World of Warcraft. This policy describes
 **Local preferences** — stored in your browser's localStorage:
 
 - UI theme, heading font, page size, sort options, search history, and category filters
-- Download watch folder paths and toggle states (developer support, ZIP cleanup, deep linking)
+- Download watch folder paths and toggle states (browser install, ZIP cleanup, deep linking)
 
 **Installed addon database** — stored as a JSON file in your WoW AddOns folder:
 
