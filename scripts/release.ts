@@ -7,8 +7,33 @@ import { stdin as input, stdout as output } from 'node:process';
 import * as readline from 'node:readline/promises';
 
 const rl = readline.createInterface({ input, output });
-const ask = (q: string) => rl.question(q);
-const checkYesOrNo = (ans: string) => ans.toLowerCase() === 'n';
+let pipedLines: string[] | null = null;
+let pipedIdx = 0;
+function getPipedLines(): string[] {
+  if (pipedLines !== null) return pipedLines;
+  try {
+    if (input.isTTY === false) {
+      const data = readFileSync(0, 'utf-8');
+      pipedLines = data.split(/\r?\n/);
+    } else {
+      pipedLines = [];
+    }
+  } catch {
+    pipedLines = [];
+  }
+  return pipedLines;
+}
+const ask = async (q: string): Promise<string> => {
+  if (input.isTTY === false) {
+    const lines = getPipedLines();
+    const ans = lines[pipedIdx++] ?? '';
+    output.write(q);
+    output.write(ans + '\n');
+    return ans;
+  }
+  return rl.question(q);
+};
+const checkYesOrNo = (ans: string) => ans.trim().toLowerCase() === 'n';
 
 const RED = '\x1b[0;31m';
 const GREEN = '\x1b[0;32m';
