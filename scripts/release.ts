@@ -117,7 +117,7 @@ function generateChangelog(next: string, baseTag?: string): { changelogEntry: st
 
   const range = rangeStart ? `${rangeStart}..HEAD` : 'HEAD';
 
-  const log = execSync(`git log ${range} --pretty=format:"%s" --reverse`, { encoding: 'utf-8' });
+  const log = execSync(`git log ${range} --pretty=format:"%B" --reverse`, { encoding: 'utf-8' });
   const lines = log.split('\n').filter(Boolean);
 
   const added: string[] = [];
@@ -471,6 +471,11 @@ async function main() {
     console.log(`  ${YELLOW}warning${NC} You are on branch '${branch}', not 'main'.`);
     const reply = await ask('  Continue anyway? (y/N) ');
     if (reply.toLowerCase() !== 'y') {
+      if (didAutoStash) {
+        try {
+          execSync('git stash pop', { stdio: 'inherit' });
+        } catch {}
+      }
       console.log('Aborted.');
       process.exit(0);
     }
@@ -480,6 +485,11 @@ async function main() {
   if (!dryRun) {
     const proceed = await ask(`Proceed with release v${next}? (Y/n) `);
     if (checkYesOrNo(proceed)) {
+      if (didAutoStash) {
+        try {
+          execSync('git stash pop', { stdio: 'inherit' });
+        } catch {}
+      }
       console.log('Aborted.');
       process.exit(0);
     }
@@ -574,13 +584,29 @@ async function main() {
     if (!dryRun) {
       const looksGood = await ask('Does the changelog look good? (Y/n) ');
       if (checkYesOrNo(looksGood)) {
-        const fileList = ['package.json', ...(isBetaRelease ? [] : ['CHANGELOG.md']), `changelogs/v${next}.md`];
+        console.log(`\n${YELLOW}Reverting changes...${NC}`);
+        for (const [file, content] of Object.entries(fileSnapshot)) {
+          try {
+            if (content === null) rmSync(file);
+            else writeFileSync(file, content);
+          } catch {}
+        }
+        try {
+          rmSync(`changelogs/v${next}.md`);
+        } catch {}
+        if (didAutoStash) {
+          try {
+            execSync('git stash pop', { stdio: 'inherit' });
+            console.log(`  ${GREEN}ok${NC} Restored stashed changes`);
+          } catch {
+            console.log(`  ${YELLOW}warning${NC} Could not pop stash — check 'git stash list'`);
+          }
+        }
+        console.log('Reverted to state before release.');
         console.log(`
-Edit files manually, then run:
-  git add ${fileList.join(' ')}
-  git commit -m "chore: release v${next}"
-  git tag -a v${next} -m "Release v${next}"
-  ${noPush ? '# (--no-push enabled)' : `git push origin ${branch} --tags`}
+If you want to edit manually, run:
+  git diff
+and re-run: ./scripts/release.ts ${bump}${betaModifier ? ' beta' : ''} ${noPush ? '--no-push' : ''} ${skipChangelog ? '--no-changelog' : ''}
 `);
         process.exit(0);
       }
