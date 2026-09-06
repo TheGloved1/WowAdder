@@ -305,6 +305,9 @@ Flags:
   --dry-run          Show what would be done without making changes
   --help, -h, help   Show this help
 
+  Uncommitted changes are handled interactively: [s] stash & continue, [c] continue anyway, [a] abort.
+  In non-interactive environments (CI) the script still exits with an error.
+
 Changelog preview:
   changelog                      Preview changelog for current version
   changelog patch                Preview changelog for next patch
@@ -425,11 +428,43 @@ async function main() {
   // Pre-flight checks
   step('Running pre-flight checks');
 
+  let didAutoStash = false;
   if (!dryRun) {
     const status = execSync('git status --porcelain', { encoding: 'utf-8' }).trim();
-    if (status) fail('Uncommitted changes detected. Commit or stash them first.');
+    if (status) {
+      // Non-interactive (CI) — fail fast when stdin is explicitly non-TTY
+      if (process.stdin.isTTY === false) {
+        fail('Uncommitted changes detected. Commit or stash them first.');
+      }
+      console.log(`  ${YELLOW}warning${NC} Uncommitted changes detected:`);
+      try {
+        const short = execSync('git status --short', { encoding: 'utf-8' }).trim();
+        if (short) console.log(`${DIM}${short}${NC}`);
+      } catch {}
+      const ans = await ask('  [s] Stash & continue  [c] Continue anyway  [a] Abort [s/c/a] (a): ');
+      const v = ans.trim().toLowerCase();
+      if (v === 's') {
+        try {
+          execSync('git stash push -m "release: autostash before v' + next + '" --include-untracked', {
+            stdio: 'inherit',
+          });
+          didAutoStash = true;
+          ok('Stashed working tree');
+        } catch (e) {
+          fail('Failed to stash changes: ' + e);
+        }
+      } else if (v === 'c') {
+        ok('Continuing with dirty tree');
+      } else {
+        console.log('Aborted.');
+        process.exit(0);
+      }
+    } else {
+      ok('Working tree clean');
+    }
+  } else {
+    ok('Working tree clean (dry run — ignoring dirty check)');
   }
-  ok('Working tree clean');
 
   const branch = execSync('git branch --show-current', { encoding: 'utf-8' }).trim();
   if (branch !== 'main') {
@@ -602,6 +637,16 @@ Edit files manually, then run:
       execSync(`git push origin ${branch} --tags`, { encoding: 'utf-8' });
     }
     ok('Pushed');
+  }
+
+  if (didAutoStash && !dryRun) {
+    step('Restoring stashed changes');
+    try {
+      execSync('git stash pop', { stdio: 'inherit' });
+      ok('Restored stashed changes');
+    } catch {
+      console.log(`  ${YELLOW}warning${NC} Could not pop stash — check 'git stash list'`);
+    }
   }
 
   // Done
