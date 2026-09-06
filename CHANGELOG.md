@@ -1,3 +1,23 @@
+## [26.9.0] - 2026-09-06
+
+### Fixed
+
+- **config**: correct app identifier and compact arrays
+- **release**: handle uncommitted changes gracefully with interactive prompt
+
+### Changed
+
+- **preferences**: rename Support Developers to Browser Install
+
+### Other
+
+- update README with current feature set
+- trim README to differentiating features only
+- remove themes bullet from features
+- soften native performance claims
+- **deps**: bump zip to 8 and reqwest to 0.13
+- add .gitattributes to lock line endings
+
 ## [26.7.0] - 2026-07-01
 
 ### Added
