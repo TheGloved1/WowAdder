@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { execSync } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, fstatSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { stdin as input, stdout as output } from 'node:process';
 import * as readline from 'node:readline/promises';
@@ -9,10 +9,18 @@ import * as readline from 'node:readline/promises';
 const rl = readline.createInterface({ input, output });
 let pipedLines: string[] | null = null;
 let pipedIdx = 0;
+function isPipedInput(): boolean {
+  try {
+    const stat = fstatSync(0);
+    return stat.isFIFO() || stat.isFile();
+  } catch {
+    return input.isTTY === false;
+  }
+}
 function getPipedLines(): string[] {
   if (pipedLines !== null) return pipedLines;
   try {
-    if (input.isTTY === false) {
+    if (isPipedInput()) {
       const data = readFileSync(0, 'utf-8');
       pipedLines = data.split(/\r?\n/);
     } else {
@@ -24,7 +32,7 @@ function getPipedLines(): string[] {
   return pipedLines;
 }
 const ask = async (q: string): Promise<string> => {
-  if (input.isTTY === false) {
+  if (isPipedInput()) {
     const lines = getPipedLines();
     const ans = lines[pipedIdx++] ?? '';
     output.write(q);
