@@ -187,7 +187,7 @@ export default function Settings() {
           <span
             className={`font-wow-heading text-sm tracking-wider ${prefs.browserInstall ? 'text-wow-gold' : 'text-wow-text-dim'}`}
           >
-            {prefs.browserInstall ? 'Browser Install' : 'Fast Install'}
+            {prefs.browserInstall ? 'Using Browser Install' : 'Using Fast Install'}
           </span>
         </label>
 
